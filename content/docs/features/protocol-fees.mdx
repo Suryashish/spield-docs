@@ -1,0 +1,105 @@
+---
+title: Protocol fees
+description: The two fees Spield charges, a 5% yield fee and a 20% share of swap fees, what each is capped at on-chain, where the money goes, and what is never charged.
+icon: Percent
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Spield earns from two places, both capped by the contracts themselves. Everything else in the
+protocol is fee-free. This page lists exactly what is charged and what is not, so there are no
+surprises.
+
+## At a glance
+
+| Fee | Charged on | Rate | Hard ceiling in the contract |
+| --- | --- | --- | --- |
+| **Yield fee** | YT interest, at the moment it is paid out | **5%** | **10%** |
+| **Swap fee** | Each PT or YT trade in the market | Scales with time to maturity | 5% a year on the fee root |
+| **Protocol share of the swap fee** | The swap fee above | **20%** (LPs keep **80%**) | **50%** |
+
+The ceilings are enforced on-chain, so even a compromised admin key could not push a fee higher.
+
+## 1. The yield fee: 5% of YT interest
+
+YT holders earn the interest the position produces. When that interest is **paid out** (by a
+claim, by the Router's "claim to USDC", or when the Fixed-Rate Vault collects its YT yield),
+**5% of it goes to the protocol** and 95% to the holder. The mainnet Series 2 yield contract
+was verified at 500 bps (5%).
+
+```text
+interest paid out  =  holder 95%  +  protocol 5%
+```
+
+- It is charged on **interest only**. Never on principal, never on PT.
+- It is charged **when interest is paid**, not while it accrues. Selling or transferring YT
+  credits the interest you earned *before* the sale to you, in full, and the fee applies when
+  you claim it.
+- The Fixed-Rate Vault's coupon is funded from YT interest, so the vault's rate is checked
+  **net of this fee** before launch. See [the yield source](/docs/how-it-works/yield-source).
+- The ceiling is **10%** (1,000 bps). The fee can be changed only within it.
+
+This is the main revenue line. It scales with how much money is in the protocol, not with trading
+volume. The Yield page in the app shows the fee in **Protocol yield fee**.
+
+## 2. The swap fee, split between LPs and the protocol
+
+Every PT or YT trade pays a fee that is built into the price:
+
+```text
+fee rate = exp( ln_fee_root x years to maturity )
+```
+
+It is larger far from maturity and falls to nothing at maturity, so it stays a roughly constant
+share of the *yield being traded* at every term. The launch configuration uses a root of
+0.25% a year, with an on-chain ceiling of 5% a year. See
+[the yield market](/docs/features/yield-market#the-fee-scales-with-time-to-maturity).
+
+That fee is then **split**:
+
+| Share | Goes to | Default |
+| --- | --- | --- |
+| **LPs** | Stays in the pool and raises every LP share's value | **80%** |
+| **Protocol** | Paid out of the pool to the treasury, in SR | **20%** |
+
+- The protocol's share has a hard ceiling of **50%**, so LPs can never be pushed below half the fee.
+- **PT trades and YT trades pay the same split**, so no route is cheaper than another.
+- The protocol share is deliberately **lower than the LP share**.
+- Swap fees are a modest line next to the yield fee. They mainly compensate liquidity providers.
+
+Treasury (USTRY) series markets use the same split model. Fee changes on those markets are
+**scheduled and apply after a delay of at least 24 hours**, so traders and LPs see a change
+coming.
+
+## What is not charged
+
+- **No fee to wrap or unwrap SR.** SR moves 1:1 with its share of the yield source.
+- **No fee on the Router.** It is a convenience layer. Network fees and the market's swap fee
+  still apply to the route's underlying trade.
+- **No fee to deposit into the Fixed-Rate Vault**, beyond the yield fee on the interest the
+  vault earns.
+- **No fee to redeem PT** at maturity, and no fee to recombine PT and YT.
+- **No fee to add or remove liquidity.**
+- **No yield fee in a Treasury (USTRY) series.** Its fees come only from its market's swap fee.
+- **Network and bridge fees are separate.** Stellar network fees apply to every transaction, and
+  cross-chain transfers pay Circle's transfer fee shown in the quote.
+
+## Where the money goes
+
+Protocol fees are paid **in SR** to a **treasury address** stored on each contract. You can read
+it on-chain (`treasury()`), and the market keeps a running `treasury_earned` total, so the flow is
+auditable. Fee settings and the treasury address are changed by the contracts' admin, which on
+mainnet is a **2-of-3 multisig**. See [Security](/docs/resources/security).
+
+<Callout title="Surplus after maturity is not revenue">
+  After a series matures, the SR held above PT cover is **owed to YT holders**, not the protocol.
+  Only money that is provably owed to nobody (rounding dust and YT interest abandoned by burning
+  YT without claiming) can ever be swept to the treasury, and a healthy series sweeps close to
+  nothing. See [Solvency](/docs/how-it-works/solvency#after-expiry).
+</Callout>
+
+## Related
+
+- [PT and YT explained](/docs/how-it-works/pt-and-yt)
+- [Liquidity](/docs/features/liquidity): how LPs earn the 80%
+- [Solvency](/docs/how-it-works/solvency)

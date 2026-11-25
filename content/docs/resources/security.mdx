@@ -1,6 +1,6 @@
 ---
 title: Understanding the risks
-description: An honest overview of the risks in using Spield — smart-contract, yield-source, market, and YT-specific risk — and how the protocol mitigates each.
+description: An honest overview of the risks in using Spield. Smart contract, Blend, USTRY issuer and oracle, liquidity, market, YT, admin multisig, caps, and cross-chain risk, and how the protocol limits each.
 icon: ShieldAlert
 ---
 
@@ -8,107 +8,147 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 Spield is engineered to be safe by construction, but **no DeFi protocol is risk-free**. This
 page lays out the real risks plainly, and what Spield does to reduce each. Read it before
-committing significant funds.
+committing funds.
 
 <Callout type="warn" title="The golden rule">
-  Only deposit what you can afford to put at risk. Spield is a young protocol; start small,
-  understand each product, and verify solvency yourself.
+  Only deposit what you can afford to lose. Spield is young, unaudited by any published independent
+  report, and its launch caps are small on purpose. Start small, understand each product, and verify
+  solvency yourself.
 </Callout>
 
 ## Smart-contract risk
 
-Like any on-chain protocol, Spield runs on code. A bug could in principle affect funds.
+Like any on-chain protocol, Spield runs on code. A bug could in principle affect funds. No independent
+audit report has been published.
 
-**Mitigations.** The protocol is built defensively: solvency is re-checked on every operation;
-contracts follow checks-effects-interactions; reentrancy is prevented by the platform and by
-design; amounts are bounded; and each contract publishes its live code hash so you can verify
-exactly what's running. Upgrades are **timelocked**, giving users a window to exit before code
-under their funds changes.
+**Mitigations.** The yield engine asserts solvency after every state change. Contracts follow
+checks-effects-interactions, amounts are bounded, and each contract exposes its live code hash so you can
+verify what is running. Upgrades are **timelocked**: the delay is at least 24 hours (and at most 30
+days), giving users a window to exit before code under their funds changes.
 
-**Your part.** Prefer the official app and verified addresses, and check the current audit
-status before depositing large amounts.
+**Your part.** Use the official app and the verified addresses in [Addresses](/docs/developers/addresses),
+and keep amounts small.
 
-## Yield-source risk
+## Yield-source risk: Blend
 
-Spield sources yield from an external lending market (Blend). Spield inherits that market's
-health.
+On Blend series, Spield supplies USDC to a Blend lending pool and inherits that market's health.
 
-**What it means.** If the lending market functions normally, Spield works as designed. If it
-were to pause withdrawals or suffer a problem, payouts would wait on it, and in a severe
-adverse event the backing could be affected.
+**What it means.** If Blend works normally, Spield works as designed. If Blend were to pause withdrawals or
+suffer bad debt, redemptions would wait on it, and in a severe case value could be lost. If the pool
+loses principal, the loss lands **pro rata** across SR holders (nobody exits ahead of anyone else), and the
+Fixed-Rate Vault applies a transparent pro-rata haircut to open receipts rather than freezing them.
 
-**Mitigations.** Spield uses a deep, blue-chip lending pool; it only **supplies** USDC (never
-borrows), minimizing direct exposure; and it states this dependency openly. The solvency view
-remains readable even if the underlying pool were frozen — Spield doesn't paper over a
-yield-source outage.
+**Liquidity in the pool.** Blend only lets USDC out up to its available liquidity. When the pool is
+short, an unwrap or redemption can pay in parts. The app shows **Withdraw what is available** or
+**Collect rest**, and you collect the remainder later.
+
+**Mitigations.** Spield only **supplies** USDC (it never borrows), SR redemption never depends on a maturity
+or on the rate being up, and the solvency view stays readable even if the pool were frozen.
+
+## USTRY risks (tokenized Treasuries, testnet today)
+
+USTRY series carry their own risks, on top of the contract risk above.
+
+- **NAV can fall.** PT is measured in dollar face but pays out a USTRY amount fixed at the high-water NAV.
+  If NAV falls, that USTRY is worth fewer dollars. USD face is **not** a principal guarantee.
+- **Issuer controls.** The USTRY issuer's asset flags include **revocable** authorization and **clawback**. The
+  issuer can freeze or claw back USTRY. A clawback from a series' contract freezes USTRY payouts for every
+  user of that series until the tokens are restored. A clawback from a PT/USTRY pool makes trading fail
+  closed, and LPs then exit pro rata from what the pool still holds.
+- **Oracle risk.** USTRY series read a **SEP-40** NAV feed (RedStone on mainnet, a Spield-run feed on
+  testnet). A stale or unavailable feed closes **new deposits and splits only**. Exits, claims, YT transfers, and
+  burns never call the oracle, and finalization after the grace period does not read it either. The
+  high-water NAV can only rise by a capped amount per year, so a bad price cannot move value faster than that.
+- **Cash-out liquidity.** Converting USTRY to USDC uses the Stellar DEX order book. Spield does not redeem
+  USTRY for fiat on your behalf, and a thin book means a worse price.
 
 ## Market risk (PT before maturity)
 
-A PT held **to maturity** returns par (1.0). But its **market price before maturity** moves
-with interest rates, like any bond.
+A PT held **to maturity** returns par (1.0). But its **market price before maturity** moves with interest
+rates, like any bond.
 
-**What it means.** If you sell PT early when rates have risen, you may receive less than you
-paid. Held to maturity, you get the full fixed return.
+**What it means.** If you sell PT early when rates have risen, you may receive less than you paid. Held to
+maturity, you get the full fixed return.
 
-**Mitigations.** None needed for hold-to-maturity savers — the fixed outcome is guaranteed at
-maturity. If you might exit early, size accordingly and watch the market price.
+**Mitigations.** None needed for hold-to-maturity savers. If you might exit early, size accordingly and watch
+the market price.
 
 ## YT-specific risk
 
-YT is the **higher-risk** leg. It's a leveraged claim on yield and can **decay to zero** by
-maturity if the position earns little.
+YT is the **higher-risk** leg. It is a leveraged claim on yield and can **decay to zero** by maturity if the
+position earns little.
 
-**What it means.** If realized yield underperforms the implied APY, YT can lose most or all of
-its value. That's the trade-off for its upside leverage.
+**What it means.** If realized yield underperforms the implied rate, YT can lose most or all of its value.
+That is the trade-off for its upside leverage. There is no borrowing, so there is nothing to liquidate.
 
-**Mitigations.** This is inherent to the instrument — it isn't a flaw to be fixed. Only go
-[long yield](/docs/guides/long-yield) if you understand and accept this. You can claim accrued
-yield along the way and exit any time.
+**Mitigations.** This is inherent to the instrument. Only go [long yield](/docs/guides/long-yield) if you
+understand and accept it. You can claim accrued yield along the way and exit any time before maturity.
 
-## Liquidity & slippage risk
+## Liquidity and slippage risk
 
 Trades on the market are subject to available liquidity and slippage.
 
-**What it means.** Large trades on a thin pool get worse prices, and a trade can exceed
-available liquidity.
+**What it means.** Large trades on a thin pool get worse prices, and a trade can exceed what the pool can
+fill. LP positions are exposed to the pool's price moving while they are in it.
 
-**Mitigations.** Every trade shows a live quote and respects a **slippage tolerance** you set;
-if a trade would exceed liquidity, the app tells you rather than executing a bad fill. LPs can
-always withdraw, so liquidity isn't trapped.
+**Mitigations.** Every trade shows a live quote and respects a **max slippage** you set (default 1%). If
+the pool cannot fill your size, the app says so instead of sending a bad trade. LPs can always withdraw, so
+liquidity is not trapped.
 
-## Admin / governance risk
+## Admin and governance risk
 
-Spield has an operational admin during its early phase.
+Spield's contracts are administered by a **2-of-3 multisig** account:
+`GDJ66WMVVH6MWBL4KORY2HOXWLY4UGFCMP64RC474LUJPQCPQUC4RUFL`. It has three signers of equal weight, its master
+key has weight 0, and every threshold is 2, so no single signer can act alone. It is the admin of all
+mainnet contracts.
 
-**What the admin can do.** Pause *new* inflows, adjust rates/fees within on-chain ceilings, and
-schedule **timelocked** upgrades.
+**What the admin can do.** Pause *new* deposits and trades, set the per-series deposit cap, adjust the
+vault rate and fees **within hard on-chain ceilings** (vault rate 20%, yield fee 10%, treasury swap-fee share
+50%), and schedule **timelocked** upgrades (24 hours minimum).
 
-**What the admin cannot do.** Move user funds, mint unbacked tokens, drain reserves, or bypass
-the upgrade timelock — those capabilities don't exist. A pause can never trap funds: exits
-(claims, redemptions, recombine, LP withdrawals) always stay open.
+**What the admin cannot do.** Move user funds, mint unbacked tokens, drain reserves, or skip the upgrade
+timelock. Those functions do not exist. A pause can never trap funds: PT redemption, vault receipt
+redemption, YT yield claims, liquidity removal, and SR unwrapping stay open.
 
-**Mitigations.** Bounded powers by design, two-step admin rotation, and a timelock on upgrades.
-The admin is pathed toward a multisig as the protocol matures. See
-[Architecture: trust model](/docs/developers/architecture#trust-model-honest-summary).
+**What remains.** Two of the three signers acting together are trusted not to ship a malicious upgrade
+during a window you do not notice. The timelock exists so that you can notice. Admin changes use two-step
+rotation. See [Architecture: trust model](/docs/developers/architecture#trust-model-honest-summary).
 
-## Bridge risk (only if you use it)
+## Per-series caps (Guarded Launch Cap)
 
-The optional [cross-chain bridge](/docs/features/cross-chain-bridge) is separate
-infrastructure with its own risk profile.
+Each series has a ceiling on total SR deposits. Mainnet Series 1 was capped at 50 USDC and Series 2 at 160 USDC.
+Caps limit how much can be exposed to a bug at launch. They gate new deposits
+only: lowering a cap, or a series being full, never blocks an exit.
 
-**Mitigations.** Spield integrates a reputable provider (Allbridge Core), and the bridge is
-purely a convenience for getting USDC onto Stellar — it's never part of how your position is
-held. If you'd rather avoid it, withdraw USDC directly on Stellar from an exchange.
+## Immutable expiry
+
+A series' maturity is fixed at creation. There is no roll and no extension. A new maturity is a new series
+with its own contracts and its own PT. That limits what an admin can change after you deposit, and it
+means you must move to a new series yourself when one ends.
+
+## Cross-chain risk (only if you use it)
+
+The app's cross-chain flows use **Circle CCTP V2**, which is separate infrastructure with its own risk profile.
+They only move USDC to or from your own Stellar wallet. If anything pauses, the funds stop in your wallet.
+The app re-reads the chain before every step and never repeats one, and a price more than 2% worse than you
+reviewed stops a journey for your decision. If you would rather avoid it, withdraw USDC directly on
+Stellar from an exchange.
+
+## Wallet and phishing risk
+
+Anyone can issue an asset with a similar name. PT assets are identified by their full **`CODE:ISSUER`**, and
+each series has a different issuer. Verify against [Addresses](/docs/developers/addresses). Never enter your
+recovery phrase into a website.
 
 ## How to stay safe
 
-- Verify you're on the **official app URL**; never enter your recovery phrase into a website.
-- **Simulate / review** every transaction before signing — the app shows you what will happen.
+- Verify you are on the **official app URL** (`app.spield.live`).
+- **Review** every transaction before signing. The app shows what each route does and how many signatures it needs.
 - Check the **[Solvency dashboard](/docs/features/solvency-dashboard)** any time you want reassurance.
-- Start with **small amounts**, and only scale up once you're comfortable.
+- Start with **small amounts**, and only scale up once you are comfortable.
 - Keep your wallet's recovery phrase **offline and private**.
 
 <Callout title="Transparency is the point">
-  Spield exposes its solvency, its code hashes, its pause/admin state, and all its events
-  on-chain so you can verify rather than trust. Use that — it's there for you.
+  Spield exposes its solvency, its code hashes, its pause and admin state, and all its events on-chain so you
+  can verify rather than trust. Use that. It is there for you.
 </Callout>

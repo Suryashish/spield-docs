@@ -6,6 +6,9 @@
     "earn-fixed-yield",
     "long-yield",
     "provide-liquidity",
-    "bridge-usdc"
+    "trade-with-sr",
+    "treasury-yield",
+    "bridge-usdc",
+    "redeem-at-maturity"
   ]
 }

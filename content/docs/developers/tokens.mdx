@@ -1,97 +1,126 @@
 ---
-title: Tokens & units
-description: How Spield's tokens work as Stellar assets — PT, YT, and USDC as SACs, their 7-decimal base units, and the fixed-point convention for rates.
+title: Tokens and units
+description: The tokens in a Spield series (SR, PT, YT, USDC, USTRY and its claim tokens), what kind of asset each one is, and how to handle decimals and fixed-point values.
 icon: Coins
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Spield's tokens are ordinary **Stellar assets**, wrapped as **Stellar Asset Contracts (SACs)**
-so contracts can hold and move them. If you can work with a Stellar token, you can work with
-PT and YT.
+Spield's tokens are not all the same kind of thing. PT is a classic Stellar asset, YT and SR are
+contract tokens, and USTRY series have their own claim tokens. This page tells you which is which,
+so you handle balances, trustlines and addresses correctly.
 
-## The three tokens
+## At a glance (Blend series)
 
-| Token | Symbol | What it is |
+| Token | What it is | Trustline needed | Address you use |
+| --- | --- | --- | --- |
+| **USDC** | The underlying. Circle USDC on mainnet, Blend's test USDC on testnet. A classic asset with a SAC. | Yes (classic) | The USDC SAC |
+| **SR** | Standardized Return. A yield-bearing share over the Strategy. A SEP-41 contract token. | No | The SR contract |
+| **PT** | Principal Token. The classic asset `SPLDPT` (the code varies by series) wrapped as a SAC. | **Yes** (classic) | The PT SAC, or `CODE:ISSUER` |
+| **YT** | Yield Token. The **Yield contract itself**. Not a SAC and not a classic asset. | No | The Yield contract |
+
+All of these use **7 decimals**.
+
+## SR (Standardized Return)
+
+SR is what USDC becomes when you deposit it into a series. It is a share token: as the Blend position
+earns, each SR is worth more USDC. The USDC value of one SR is `exchange_rate()` (12-decimal fixed point,
+so `1050000000000` means `1.05` USDC per SR).
+
+- Symbol `SR`, name `Spield Standardized Return`, `decimals()` is `7`.
+- Mint by `deposit`, burn by `redeem`. There is a per-series deposit cap (`deposit_cap`), which applies to deposits only, never to exits.
+- SR is what the PT/SR market pairs PT with, and what the engine takes in `mint_py`.
+
+## PT (Principal Token)
+
+PT is the fixed-income leg: one PT redeems for one unit of USDC at maturity.
+
+- **A classic Stellar asset** with code `SPLDPT` (or a series-specific code such as `SPLDPT9` on testnet), wrapped as a Stellar Asset Contract. A wallet needs a **trustline** to hold it. `@spield/sdk` adds one automatically when needed.
+- **A fresh issuer account per series.** That issuer is locked after setup: all signer weights are zero, so no key can ever mint PT. The SAC's admin is the series' Yield contract, so only the engine can mint or burn PT.
+- **Not unique by code.** Both mainnet series use `SPLDPT`, under different issuers. Always compare the full `CODE:ISSUER`.
+
+| Series | PT classic asset |
+| --- | --- |
+| Mainnet Series 2 | `SPLDPT:GBBRKYFRHSDUQ3YQRIFR42GZ4OKFMVKCZN7JYFPESVNSRU3WEE4JPI7Q` |
+| Mainnet Series 1 | `SPLDPT:GDNSUOHJIWYXX6HC6ZVDJNLSIBLZMLJYBG7NAN2CRUSXOG4FIDAOH5KN` |
+
+A PT from one series cannot be redeemed through another series' contracts, even when the code matches.
+Find the PT address for any series on [Contract addresses](/docs/developers/addresses), or read it from
+the Yield contract with `pt_token()`.
+
+<Callout type="warn" title="Compare CODE:ISSUER, never the code alone">
+  An integration that matches PT by `SPLDPT` alone will mix up series. Match the issuer too, or
+  match the SAC contract address.
+</Callout>
+
+## YT (Yield Token)
+
+YT receives the variable yield until maturity.
+
+- **YT is the Yield contract.** There is no YT classic asset and no YT SAC. Use the Yield contract address wherever you need the YT token (`balance`, `transfer`, `approve`).
+- **Why:** accrued interest must be settled for both sides before a balance changes, and a SAC cannot run that logic. So the Yield contract is a token with a built-in transfer hook (`before_yt_change`). Every `transfer`, `transfer_from` and `burn` settles both parties first, which is also what makes YT tradable on a market.
+- Symbol `YT`, name `Spield Yield Token`, `decimals()` is `7`. No trustline is needed.
+- YT stops accruing at expiry. Yield you earned before expiry stays claimable after it.
+
+## USDC
+
+| Network | Asset | SAC |
 | --- | --- | --- |
-| **USDC** | `USDC` | Circle's USD-backed stablecoin, native on Stellar. The asset users deposit and PT redeems into. |
-| **Principal Token** | `SPLDPT` | The fixed-rate bond leg. Redeems 1:1 for USDC at maturity. |
-| **Yield Token** | `SPLDYT` | The variable yield leg. A claim on all yield to maturity. |
+| Mainnet | `USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN` (Circle) | `CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75` |
+| Testnet | `USDC:GATALTGTWIOT6BUDBCZM3Q4OQ4BO2COLOAZ7IYSKPLC2PMSOPPGF5V56` (Blend test USDC) | `CAQCFVLOBK5GIULPNZRGATJJMIZL5BSP7X5YJVMGCPTUEPFM4AVSRCJU` |
 
-PT and YT are minted and burned only by Spield's tokenization engine (it holds their asset
-admin rights). As a holder you can transfer them, trade them, or supply them as liquidity like
-any other Stellar asset.
+On testnet the Blend series use **Blend's own test USDC**, because that is what the Blend testnet pool
+accepts. Circle's testnet USDC is a different asset and will not work with them.
 
-## Decimals and base units
+## USTRY series tokens
 
-All three tokens use **7 decimals**. On-chain, amounts are integers in **base units**:
+A USTRY series uses USTRY (Etherfuse's tokenized US Treasuries) as its asset and has three claim
+tokens. USTRY series are **testnet only** today.
 
-```
-1.0 USDC  = 10_000_000 base units
-1.0 PT    = 10_000_000 base units
-0.5 YT    =  5_000_000 base units
-```
+| Token | What it is | Trustline needed |
+| --- | --- | --- |
+| **USTRY** | A classic asset with a SAC. On testnet it is a sandbox asset under a test issuer. | Yes (classic) |
+| **sUSTRY** (receipt) | An unsplit deposit receipt. A SEP-41 contract token. | No |
+| **PT-USTRY** | The principal claim, in USD face. A SEP-41 contract token. | No |
+| **YT-USTRY** | The yield claim, in USD face. A SEP-41 contract token. | No |
 
-Always pass and interpret token amounts as base-unit integers (`i128`). Convert at the UI
-edge:
+- Claim tokens are separate contracts whose balances are read from the series, each with `decimals()` `7`. Moving them does not touch the oracle.
+- PT-USTRY and YT-USTRY are denominated in **USD face**, but redemption pays **USTRY units**. USD face is not a principal guarantee.
+- USTRY's issuer can freeze balances and claw back tokens. See [Architecture](/docs/developers/architecture#the-ustry-series-family).
 
-```ts
-const DECIMALS = 7;
+## Decimals and fixed-point values
 
-// human → base units
-const toBaseUnits = (human: string): bigint =>
-  BigInt(Math.round(parseFloat(human) * 10 ** DECIMALS));
-
-// base units → human
-const fromBaseUnits = (base: bigint): number =>
-  Number(base) / 10 ** DECIMALS;
-```
-
-<Callout type="warn" title="Don't use floating point for value math">
-  Keep amounts as `bigint` end to end. Only convert to a float for display. Rounding a value
-  through a JS `number` can silently lose precision on large balances.
-</Callout>
-
-## Rates and prices: 12-decimal fixed point
-
-Rates and prices (the yield-source `current_rate`, the market's `pt_price` and `implied_apy`)
-use a **12-decimal fixed-point** representation — a plain integer scaled by 10¹².
-
-```
-1_000_000_000_000  = 1.0   (par price, or a rate of 1.0)
-  80_000_000_000   = 0.08  (an implied APY of 8%)
-1_055_750_028_382  ≈ 1.05575…  (a yield-source rate)
-```
-
-To read one as a human number, divide by 10¹²:
+| Kind | Representation | Example |
+| --- | --- | --- |
+| **Token amounts** (USDC, SR, PT, YT, USTRY, claim tokens) | Integers in base units, **7 decimals** | `10000000` is `1.0` |
+| **Rates and prices** (`exchange_rate`, `pt_price`, `implied_apy`, `py_index`) | **12-decimal** fixed point | `1000000000000` is `1.0` |
+| **Basis points** (`rate_bps`, `yield_fee_bps`) | Plain integers | `300` is 3.00% |
+| **NAV feed prices** (USTRY) | 8 decimals | `100000000` is `$1.00` |
 
 ```ts
-const SCALAR_12 = 10n ** 12n;
-const impliedApyPct = (raw: bigint): number =>
-  (Number(raw) / Number(SCALAR_12)) * 100; // raw 80_000_000_000 → 8
+const toBase = (human: string) => BigInt(Math.round(parseFloat(human) * 1e7)); // '1.5' -> 15000000n
+const fromBase = (raw: bigint) => Number(raw) / 1e7;                           // 15000000n -> 1.5
+const SCALAR_12 = 1_000_000_000_000n;
+// pt_price() of 990000000000n means 0.99 USDC per PT
 ```
 
-<Callout title="Why 12 decimals for rates">
-  The yield-source rate moves in the 9th–11th decimal place over short windows. A 12-decimal
-  fixed-point integer captures that precisely; a divided float would collapse tiny changes to
-  zero. Keep rate values as `bigint` until display.
+<Callout type="info" title="Use strings for money in JavaScript">
+  Floating point can produce more than 7 decimals (`0.1 + 0.2`). `@spield/sdk` accepts human
+  amounts as strings (`'10.5'`) and treats a `bigint` as base units. See [the SDK page](/docs/developers/sdk#amounts).
 </Callout>
 
-## Trustlines
+## Discovering addresses at runtime
 
-Because PT and YT are real Stellar assets, an account must hold a **trustline** to each before
-receiving them. The Spield app sets these up automatically on a user's first deposit. If
-you're building your own flow, ensure the recipient has trustlines to `SPLDPT` / `SPLDYT`
-before a mint — otherwise it fails.
+You do not have to hard-code a series' tokens. Given a series' Yield contract, you can read the rest
+from chain:
 
-## Discovering the asset addresses
+| Read | Function |
+| --- | --- |
+| SR address | `sr_token()` on the Yield contract |
+| PT address | `pt_token()` on the Yield contract |
+| YT address | the Yield contract itself |
+| USDC address | `underlying()` on SR |
+| Maturity | `expiry()` on the Yield contract |
 
-Rather than hard-coding addresses, read them from the tokenization engine at runtime:
-
-- `pt_token()` → the PT SAC address
-- `yt_token()` → the YT SAC address
-- `underlying()` → the USDC SAC address
-
-This keeps your integration correct across networks and any future redeployment.
-
-Next: [reading protocol state](/docs/developers/reading-state).
+To discover **which series exist**, use `client.listSeries()` in the SDK, or the signed hosted lists. See
+[Contract addresses](/docs/developers/addresses#discovering-series-at-runtime).

@@ -1,6 +1,6 @@
 ---
 title: Your first deposit
-description: Make your first Spield deposit — the simplest path is the Fixed-Rate Vault, which gives you a guaranteed payout at maturity.
+description: Make your first Spield deposit. Pick a series, then use the Fixed-Rate Vault for a guaranteed payout at maturity, or Deposit to mint PT and YT yourself.
 icon: CirclePlay
 ---
 
@@ -8,9 +8,28 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 
-You're connected and funded — time to deposit. The **simplest** first experience is the
-**Fixed-Rate Vault**: deposit USDC, get a receipt for a guaranteed payout at maturity. You
+You are connected and funded, so it is time to deposit. The app is at
+[app.spield.live](https://app.spield.live). The **simplest** first experience is the
+**Fixed-Rate Vault**: deposit USDC, get a receipt for a fixed payout at maturity. You
 never touch PT or YT directly.
+
+## Step 0: pick a series
+
+Every deposit goes into one **series**, which is one maturity with its own contracts and its own cap.
+
+In the app header there are two menus:
+
+- **Yield source**: **Blend** (USDC lending) or **USTRY** (tokenized Treasuries). Only sources available on the network the app is on are listed.
+- **Series / maturity**: each entry reads like `Series 2 · Oct 26, 2026`, and ended series carry an **Ended** tag.
+
+Choose a series that has not ended. Deposits and trades only work on series that are still open.
+
+<Callout type="warn" title="No mainnet series is open for deposits right now">
+  Both mainnet series (Series 1 and Series 2) have matured. If you pick one, the Fixed Vault and Deposit
+  pages show their deposit buttons as closed (for example **Vault Matured (Deposits Closed)**),
+  and what remains is [redeeming at maturity](/docs/guides/redeem-at-maturity). To practice the
+  whole flow, use a live **testnet** series. New mainnet series are announced in the app.
+</Callout>
 
 ## The easy path: the Fixed-Rate Vault
 
@@ -19,44 +38,54 @@ never touch PT or YT directly.
 <Step>
 ### Open the Fixed Vault
 
-In the Spield app sidebar, choose **Fixed Vault**.
+In the app sidebar, under **Earn**, choose **Fixed Vault**.
 </Step>
 
 <Step>
 ### Enter an amount
 
-Type how much USDC you want to deposit. The app shows a **live quote**: your guaranteed
-**payout at maturity** (principal + coupon) and the **fixed APY** you're locking in.
+Type how much USDC you want to deposit. The app shows a **live quote**: your **fixed payout at
+maturity** (principal plus a fixed coupon), the **Locked APR**, and the **maturity date**.
 </Step>
 
 <Step>
 ### Review and deposit
 
-Check the quote, then click **Deposit**. Approve the transaction(s) in your wallet — the
-first deposit may include a one-time trustline approval.
+Check the quote, then click **Lock Fixed Rate** and approve in your wallet. It is one signature.
+The vault does not need a PT trustline.
 </Step>
 
 <Step>
 ### Hold your receipt
 
-You receive a **receipt** representing your guaranteed payout. Hold it until maturity, then
-redeem it for the full payout in USDC.
+You receive a **receipt**, shown under **Your fixed-rate receipts**. Hold it until maturity, then
+click **Redeem** for the full payout in USDC.
 </Step>
 
 </Steps>
 
-<Callout title="That's it — your return is locked">
-  From this moment your payout is fixed. Market rates can move all they like; your receipt
-  pays out the same amount at maturity regardless.
+<Callout title="Your return is locked">
+  From this moment your payout is fixed. Market rates can move all they like. Your receipt
+  pays out the same amount at maturity regardless, subject to the protocol's risks (see
+  [Understanding the risks](/docs/resources/security)).
 </Callout>
+
+If the button reads **Not accepting deposits**, the vault has no spare capacity to back a coupon
+right now, or the series cap is reached. See
+the FAQ entry "Why did a series stop accepting deposits?" in the [FAQ](/docs/faq).
 
 ## Prefer to hold the tokens directly?
 
 If you want PT and YT in your own wallet (to trade, to provide liquidity, or to claim yield
-yourself), use the **Deposit** page instead. It mints equal amounts of **PT** (your fixed
-bond) and **YT** (the yield claim) straight to your wallet.
+yourself), use the **Deposit** page. It supplies your USDC at par and mints equal amounts of **PT** (your fixed
+bond) and **YT** (the yield claim).
 
-That's the more advanced path — see [How It Works](/docs/how-it-works) and the
+1. Open **Deposit** under **Earn**.
+2. Enter the USDC amount. The two **You receive** boxes show equal PT and YT.
+3. If asked, click **Enable PT** (one signature, no USDC moves). See [Trustlines](/docs/getting-started/trustlines).
+4. Click **Deposit & Mint**. The app runs two signatures, shown in the **How your funds move** strip: USDC is wrapped into SR through Blend, then the SR is split into PT and YT.
+
+This is the more advanced path. See [How It Works](/docs/how-it-works) and the
 [guides](/docs/guides) to decide what to do with each token.
 
 ## What happens after you deposit?
@@ -64,15 +93,16 @@ That's the more advanced path — see [How It Works](/docs/how-it-works) and the
 | Product | What you hold | What you do later |
 | --- | --- | --- |
 | **Fixed-Rate Vault** | A receipt for a fixed payout | Redeem the receipt at maturity for USDC. |
-| **Deposit (PT + YT)** | PT and YT in your wallet | Hold PT to maturity, claim YT yield over time, or trade either on the market. |
+| **Deposit (PT + YT)** | PT in your wallet (with the trustline), and YT | Hold PT to maturity, claim YT yield over time, or trade either on the market. |
 
 ## Tracking your position
 
-The app's **Overview** shows your balances and performance, and the **Solvency** page proves
-in real time that the protocol's backing covers everything it owes. You can watch your
-position grow there at any time.
+The app's **Overview** shows your balances and performance, **Activity** lists your on-chain
+deposits, claims and redemptions, and the **Solvency** page shows live that the protocol's
+backing covers everything it owes.
 
 <Cards>
-  <Card title="Earn a fixed yield — full guide" href="/docs/guides/earn-fixed-yield" description="Step-by-step on the fixed-rate path, plus how redemption works." />
-  <Card title="See how it all works" href="/docs/how-it-works" description="Understand PT, YT, the yield source, and solvency." />
+  <Card title="Earn a fixed yield, full guide" href="/docs/guides/earn-fixed-yield" description="Step-by-step on the fixed-rate paths, plus how redemption works." />
+  <Card title="Redeem at maturity" href="/docs/guides/redeem-at-maturity" description="What to do when your series matures, including matured mainnet series." />
+  <Card title="See how it all works" href="/docs/how-it-works" description="Understand SR, PT, YT, series, the yield source, and solvency." />
 </Cards>

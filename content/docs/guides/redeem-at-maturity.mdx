@@ -1,0 +1,137 @@
+---
+title: Redeem at maturity
+description: What to do when a series matures. Redeem PT 1:1, redeem vault receipts, claim YT yield, remove liquidity, and unwrap SR. Works for the matured mainnet series.
+icon: CircleCheck
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Every Spield series has a fixed **maturity**. When it passes, the series stops taking new money and
+settles. This guide covers everything you can collect afterwards. It applies today to the two
+**matured mainnet series** (Series 1 and Series 2) and to any testnet series that has ended.
+
+## What stops and what keeps working
+
+| After maturity | Status |
+| --- | --- |
+| New deposits and mints | **Closed** |
+| Swaps on the PT/SR market | **Closed** |
+| Adding liquidity | **Closed** |
+| Redeeming PT for USDC, 1:1 | **Open** |
+| Redeeming Fixed-Rate Vault receipts | **Open** |
+| Claiming YT yield | **Open**, no deadline |
+| Removing liquidity | **Open** |
+| Unwrapping SR to USDC | **Open** (it has no maturity) |
+
+Nothing is force-closed, and nothing expires out from under you. Maturity is set once when a series
+is created and can never be moved.
+
+## Find your matured series
+
+In the app header, open the **Series / maturity** menu. Ended series are tagged **Ended**, for example
+`Series 2 · Oct 26, 2026 · Ended`. Choose the series you deposited into. The Deposit page then
+switches to **Redeem** on its own, and the other pages show closed controls.
+
+The mainnet series, for reference:
+
+| Series | Matured (UTC) | PT asset |
+| --- | --- | --- |
+| Series 1 | 2026-09-30 23:09 | `SPLDPT:GDNSUOHJIWYXX6HC6ZVDJNLSIBLZMLJYBG7NAN2CRUSXOG4FIDAOH5KN` |
+| Series 2 | 2026-10-26 23:12 | `SPLDPT:GBBRKYFRHSDUQ3YQRIFR42GZ4OKFMVKCZN7JYFPESVNSRU3WEE4JPI7Q` |
+
+Both use the code `SPLDPT` under **different issuers**. Always compare the full `CODE:ISSUER`. See the
+[Addresses](/docs/developers/addresses) page.
+
+## Redeem PT (1:1)
+
+PT redeems for exactly its face value in USDC. You do not need YT after maturity.
+
+<Steps>
+
+<Step>
+### Open Deposit
+
+Select the matured series, then **Deposit** in the sidebar. The page is already in **Redeem** mode (the
+Deposit tab reads **Deposit (Closed)**).
+</Step>
+
+<Step>
+### Enter the PT amount
+
+The field reads **You burn** with PT. **You receive (USDC)** shows the same number: par, with no curve and
+no slippage. The **Receive on** menu can send the USDC to another chain instead of your Stellar wallet.
+</Step>
+
+<Step>
+### Redeem
+
+Click **Redeem at par**. It is one signature: the router burns your PT and withdraws the USDC
+from Blend in the same call.
+</Step>
+
+</Steps>
+
+Before maturity the same button reads **Combine** and needs equal PT and YT. After maturity, PT alone is enough.
+
+## Redeem a Fixed-Rate Vault receipt
+
+1. Open **Fixed Vault** for the matured series.
+2. Under **Your fixed-rate receipts**, each matured receipt shows **Matured** and a **Redeem** button.
+3. Click **Redeem**. You are paid the receipt's full fixed payout (principal plus coupon) in USDC. The
+   **Receive on** menu beside it can send the USDC to another chain.
+
+If Blend cannot pay the whole payout at once, the vault pays what it can and the receipt shows
+**Partly withdrawn** with a **Collect rest** button. Press it again later for the remainder.
+
+## Claim YT yield
+
+All yield accrued **before** maturity stays claimable forever. After maturity the yield index
+is frozen at the expiry time and no more accrues.
+
+1. Open **Yield** (under **Earn**) for the series.
+2. **Claimable now** shows what you are owed, net of the protocol yield fee.
+3. Click **Claim ... USDC**. One signature, paid in USDC.
+
+A matured YT has no principal claim, so it is not needed to redeem PT.
+
+## Remove liquidity
+
+1. Open **Liquidity** and switch to **Remove**.
+2. Choose how much with the slider and click **Remove Liquidity**. You get your share of the pool back as **PT and SR**.
+3. Redeem the PT at par on the Deposit page (above), and unwrap the SR in the **SR Wrapper** with
+   **Unwrap to USDC**. The **Receive on** menu can do both and send USDC to another chain.
+
+## Unwrap SR
+
+If you hold SR, open the **SR Wrapper** and use **Unwrap to USDC**. It has no maturity gate, so it works
+at any time. If Blend cannot pay everything at once the button reads **Withdraw what is available**.
+
+## A USTRY series
+
+USTRY series add one step. A matured series must be **finalized** once before PT can redeem, and anyone can
+do it from the **Awaiting finalization** card. Unsplit **sUSTRY** receipts can be withdrawn any time without
+finalizing. See [Treasury yield (USTRY on testnet)](/docs/guides/treasury-yield).
+
+## Redeem everything with the SDK
+
+The [SDK](/docs/developers/sdk) can settle all matured positions for a wallet in one call:
+
+```ts
+import { SpieldClient, mainnet } from '@spield/sdk';
+
+const spield = new SpieldClient({ network: mainnet(), signer });
+await spield.loadSeries();
+await spield.redeemMatured();   // redeem PT, claim yield, redeem vault receipts
+```
+
+Use `preview('redeem')` on a series first to simulate without signing. Mainnet moves real USDC and
+costs real XLM in fees.
+
+<Callout type="warn" title="Redemption is par, not a guarantee against loss">
+  PT redeems 1:1 in USDC terms because SR is always redeemable for the underlying. If Blend were to lose
+  principal, SR holders, PT redeemers, and vault receipts share the loss pro rata. See
+  [Understanding the risks](/docs/resources/security).
+</Callout>
+
+Back to [Earn a fixed yield](/docs/guides/earn-fixed-yield).

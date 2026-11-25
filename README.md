@@ -1,11 +1,14 @@
 # Spield Documentation
 
-Public-facing documentation for **Spield** — the fixed-income layer for Stellar — built with
+Public-facing documentation for **Spield**, the fixed-income layer for Stellar, built with
 [Fumadocs](https://fumadocs.dev) (Next.js + MDX).
 
+Spield follows the Pendle V2 architecture (SR, PT, YT, and a PT/SR AMM), is live on Stellar mainnet
+since September 2026, and has two yield sources: Blend USDC and Etherfuse USTRY (testnet today).
 The site explains what Spield does, how users interact with it, and how developers integrate
-with it. It intentionally documents only the **public interface** of the protocol — no
-internal implementation details, private business logic, or security-sensitive infrastructure.
+with it (including the `@spield/sdk` package). It intentionally documents only the **public
+interface** of the protocol: no internal implementation details, private business logic, or
+security-sensitive infrastructure.
 
 ## Tech stack
 
@@ -38,17 +41,20 @@ controlled by the `meta.json` file in each folder.
 content/docs/
   index.mdx              Docs home (/docs)
   introduction/          What Spield is, why Stellar, core concepts, benefits
-  getting-started/        Wallets, funding, first deposit
-  how-it-works/           PT/YT, yield source, solvency, lifecycle
-  features/               Vault, PT/YT, market, liquidity, bridge, solvency dashboard
-  guides/                 Step-by-step tutorials
-  developers/             Architecture, contracts, tokens, reading state, integrating, events
+  getting-started/       Wallets, funding, trustlines, first deposit
+  how-it-works/          PT/YT, Standardized Return (SR), yield source, treasury series (USTRY),
+                         solvency, lifecycle, series and maturities
+  features/              Vault, PT/YT, market, liquidity, bridge, solvency dashboard, protocol fees
+  guides/                Step-by-step tutorials: earn fixed yield, long yield, provide liquidity,
+                         trade with SR, treasury yield (USTRY), bridge USDC, redeem at maturity
+  developers/            Architecture, contracts, tokens, reading state, integrating, events,
+                         addresses, SDK
   faq.mdx
-  resources/              Glossary, risks, links
+  resources/             Glossary, risks, links
 ```
 
-The root path `/` redirects to `/docs/introduction` — the main Spield app serves the marketing
-landing page, so these docs go straight to content.
+The root path `/` redirects to `/docs/introduction`. The marketing site (`www.spield.live`) and the app
+(`app.spield.live`) are separate deployments, so these docs go straight to content.
 
 ## Customizing
 

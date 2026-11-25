@@ -1,6 +1,6 @@
 ---
 title: Links & community
-description: The Spield app, ecosystem links, and where to get help or follow development.
+description: The Spield app and site, the SDK on npm, source repositories, and the ecosystem projects Spield builds on.
 icon: Link2
 ---
 
@@ -10,7 +10,12 @@ import { Callout } from 'fumadocs-ui/components/callout';
 ## Spield
 
 <Cards>
-  <Card title="Launch the app" href="https://www.spield.live/" external description="Connect a wallet and start using Spield (live on testnet)." />
+  <Card title="Launch the app" href="https://app.spield.live" external description="Connect a wallet and use Spield on Stellar mainnet. Matured series are redeem-only." />
+  <Card title="Spield website and Learn" href="https://www.spield.live" external description="The landing page, Learn articles, glossary, and comparisons." />
+  <Card title="@spield/sdk on npm" href="https://www.npmjs.com/package/@spield/sdk" external description="The TypeScript SDK for mainnet and testnet." />
+  <Card title="Protocol source" href="https://github.com/Suryashish/spield_protocol" external description="The protocol contracts on GitHub." />
+  <Card title="SDK source" href="https://github.com/Suryashish/spield_sdk" external description="The SDK repository, with its README and issue tracker." />
+  <Card title="Spield on X" href="https://x.com/spield_" external description="Announcements, including new series." />
 </Cards>
 
 <Callout type="info" title="Official links only">
@@ -24,32 +29,37 @@ Helpful background on the chain and tools Spield builds on.
 
 <Cards>
   <Card title="Stellar" href="https://stellar.org" external description="The network Spield is built on." />
-  <Card title="Soroban (smart contracts)" href="https://developers.stellar.org" external description="Stellar's smart-contract developer docs." />
-  <Card title="Blend" href="https://blend.capital" external description="The lending market Spield sources yield from." />
+  <Card title="Stellar developer docs" href="https://developers.stellar.org" external description="Soroban smart contracts, assets, and trustlines." />
+  <Card title="Stellar Expert" href="https://stellar.expert" external description="Block explorer for verifying transactions, assets, and contracts." />
+  <Card title="Blend" href="https://blend.capital" external description="The lending market Spield's Blend series source yield from." />
+  <Card title="Etherfuse" href="https://etherfuse.com" external description="Issuer of USTRY, the tokenized US Treasury asset behind Spield's USTRY series." />
   <Card title="Circle USDC" href="https://www.circle.com/usdc" external description="The stablecoin you deposit." />
-  <Card title="Stellar Expert" href="https://stellar.expert" external description="Block explorer for verifying transactions and contracts." />
-  <Card title="Allbridge Core" href="https://allbridge.io" external description="The provider behind the optional cross-chain bridge." />
+  <Card title="Circle CCTP" href="https://developers.circle.com/cctp" external description="The cross-chain protocol behind Spield's bridge flows." />
+  <Card title="RedStone" href="https://redstone.finance" external description="The oracle provider for USTRY NAV on mainnet." />
 </Cards>
 
 ## Wallets
 
-Stellar wallets that work with Spield:
+Stellar wallets that work with the Spield app:
 
 <Cards>
-  <Card title="Freighter" href="https://www.freighter.app" external description="A popular browser-extension wallet — a great default." />
-  <Card title="xBull" href="https://xbull.app" external description="Feature-rich wallet with hardware support." />
-  <Card title="Rabet" href="https://rabet.io" external description="Lightweight browser extension." />
-  <Card title="LOBSTR" href="https://lobstr.co" external description="Popular mobile-first wallet." />
+  <Card title="Freighter" href="https://www.freighter.app" external description="A popular browser-extension wallet and a good default." />
+  <Card title="xBull" href="https://xbull.app" external description="Browser-extension wallet." />
+  <Card title="Rabet" href="https://rabet.io" external description="Browser-extension wallet." />
+  <Card title="Hana" href="https://www.hanawallet.io" external description="Browser-extension wallet." />
+  <Card title="LOBSTR" href="https://lobstr.co" external description="Works through the LOBSTR Signer extension." />
+  <Card title="Albedo" href="https://albedo.link" external description="Web-based. Nothing to install." />
 </Cards>
 
 ## For developers
 
-- [Developer overview](/docs/developers) — architecture, contracts, and integration.
-- [Reading protocol state](/docs/developers/reading-state) — query Spield with free simulations.
-- [Events](/docs/developers/events) — index activity for dashboards.
+- [Developer overview](/docs/developers): architecture, contracts, and integration.
+- [SDK](/docs/developers/sdk): `@spield/sdk` for mainnet and testnet.
+- [Addresses](/docs/developers/addresses): every contract and PT asset, by series.
+- [Reading protocol state](/docs/developers/reading-state): query Spield with free simulations.
+- [Events](/docs/developers/events): index activity for dashboards.
 
 ## Get help
 
-If you're stuck, start with the [FAQ](/docs/faq) and the
-[Understanding the risks](/docs/resources/security) page. For anything else, reach out through
-the official channels linked above.
+If you are stuck, start with the [FAQ](/docs/faq) and [Understanding the risks](/docs/resources/security).
+For anything else, reach out through the official channels above.

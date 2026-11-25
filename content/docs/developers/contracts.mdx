@@ -1,127 +1,336 @@
 ---
 title: Contracts reference
-description: The public function surface of Spield's contracts — the reads and writes you call to integrate with the tokenization engine, vault, and market.
+description: The public entry points of Spield's contracts. SR, Yield, SR Market, Fixed-Rate Vault, Router and Strategy for Blend series, and the USTRY series contracts.
 icon: FileCode
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
-This is the **public interface** of each Spield contract — the entry points you call. Reads
-are free simulations; writes require the caller to authorize. Function names are shown exactly
-as they appear on-chain.
+This is the **public interface** of each Spield contract: the user-facing entry points. Names and
+argument order are exactly as they appear on chain. Reads are free simulations. Writes need the
+account named first in the argument list (`from`, `user`, `owner`, `lp`, `trader`) to authorize.
 
-<Callout title="Units">
-  Token amounts (`amount`, `payout`, balances) are integers in **base units** (7 decimals).
-  Rates/prices (`pt_price`, `implied_apy`, `current_rate`) are **12-decimal fixed point**.
-  See [Tokens](/docs/developers/tokens).
+Admin functions (pause, fee and rate setters, upgrade scheduling, admin rotation) are left out. On
+mainnet the admin of every contract is a **2-of-3 multisig**; see
+[Contract addresses](/docs/developers/addresses).
+
+<Callout title="Units and conventions">
+  - Token amounts are integers in **base units**, 7 decimals. `10000000` is `1.0`.
+  - Rates, prices and exchange rates (`exchange_rate`, `pt_price`, `implied_apy`, `py_index`) are
+    **12-decimal fixed point**: `1000000000000` is `1.0`.
+  - `deadline_ledger` is a ledger sequence number. The call fails if the ledger has passed it.
+  - A function that returns `0` from a `quote_*` view means "no quote" (empty pool, expired series).
+  - Most users should go through [`@spield/sdk`](/docs/developers/sdk), which handles amounts, trustlines and
+    simulation for you.
 </Callout>
 
-<Tabs items={['Tokenization engine', 'Fixed-Rate Vault', 'Market', 'Yield adapter']}>
+## Blend series
 
-<Tab value="Tokenization engine">
+Every function below belongs to **one series**. Find the addresses on [Contract addresses](/docs/developers/addresses).
 
-The core contract: mints PT + YT against USDC, manages positions, and enforces solvency.
+<Tabs items={['SR', 'Yield (PT and YT)', 'SR Market', 'Fixed-Rate Vault', 'Router', 'Strategy']}>
+
+<Tab value="SR">
+
+The yield-bearing share token over the Strategy. Deposit USDC, hold SR, redeem USDC. SR is a
+SEP-41 style contract token (no trustline needed).
 
 **Writes**
 
 | Function | Description |
 | --- | --- |
-| `mint(user, amount) -> u64` | Deposit `amount` USDC; mint `amount` PT + `amount` YT to `user`; returns the new position id. |
-| `claim_yield(position_id) -> i128` | Claim a position's accrued yield (paid in USDC). Keeps the YT. Returns USDC paid. |
-| `redeem_pt(position_id, amount) -> i128` | At/after maturity, redeem `amount` PT 1:1 for USDC. |
-| `combine_and_redeem(position_id, amount) -> (i128, i128)` | Any time: burn equal PT + YT to redeem principal (auto-claims yield first). Returns `(principal, yield_claimed)`. |
-| `transfer_position(position_id, to)` | Transfer a whole position (and its PT/YT) to a new owner. |
-| `bump_position(position_id)` | Permissionless: extend a position's storage lifetime. |
+| `deposit(from, receiver, amount, min_shares_out) -> i128` | Pull `amount` USDC from `from`, supply it to Blend, mint SR to `receiver`. Returns SR minted. Refused over the deposit cap or while paused. |
+| `redeem(from, receiver, shares, min_underlying_out) -> i128` | Burn `shares` SR, send the released USDC to `receiver`. Returns USDC paid. All or nothing. |
+| `redeem_partial(from, receiver, shares, min_underlying_out) -> (i128, i128)` | Like `redeem` but takes whatever the pool can pay now. Returns `(shares_burned, underlying_paid)`. |
+| `sync_rate() -> i128` | Permissionless. Advances the stored high-water rate to the live rate. Moves no funds. |
+| `bump_holder(user)` | Permissionless storage keep-alive for a holder's balance entry. |
+| `transfer(from, to, amount)` / `transfer_from(spender, from, to, amount)` | Standard token transfers. |
+| `approve(from, spender, amount, expiration_ledger)` | Standard allowance. |
+| `burn(from, amount)` / `burn_from(spender, from, amount)` | Standard burns. |
+
+`deposit_checked` has the same arguments as `deposit`. It is the entry point the Fixed-Rate Vault uses. It
+refuses a deposit while the Blend position is worth less than SR's high-water rate, so a fixed-rate
+promise is never minted against a venue loss that has not been recognized yet.
 
 **Reads**
 
 | Function | Returns |
 | --- | --- |
-| `position_value(position_id)` | A position's live value: principal, claimable yield, PT/YT amounts, open flag. |
-| `get_position(position_id)` | The raw position record (incl. owner). |
-| `solvency()` | `(backing, principal, unclaimed_yield)` — the protocol-wide solvency figures. |
-| `maturity()` | The market maturity (unix seconds). |
-| `is_paused()` | Whether inflows are paused. |
-| `pt_token()` / `yt_token()` / `underlying()` | The PT, YT, and USDC asset addresses. |
-| `version()` / `code_hash()` | Human-readable version and the live deployed code hash. |
+| `exchange_rate()` | USDC per SR, 12-decimal. The stored high-water rate and the yield oracle for the series. A pure read of stored state. |
+| `realizable_rate()` / `realizable_value(shares)` | What SR is worth on what the pool could actually pay out, rather than the high-water rate. |
+| `rate_snapshot()` | `(high_water_rate, realizable_value)` sampled together. |
+| `assets_of(user)` | A holder's SR valued in USDC. |
+| `preview_deposit(amount)` / `preview_redeem(shares)` | SR out for USDC in, USDC out for SR in. `0` means no quote. |
+| `max_redeemable()` | The largest redemption (in SR) that can succeed right now. |
+| `total_assets()` / `total_principal()` | Marked-to-market assets, and cost basis (what the cap measures). |
+| `deposit_cap()` / `deposit_headroom()` | The per-series SR deposit cap (`0` means uncapped) and the room left under it. |
+| `balance(id)`, `total_supply()`, `allowance(from, spender)`, `decimals()`, `name()`, `symbol()` | Standard token reads. `decimals` is `7`, `symbol` is `SR`. |
+| `underlying()` / `strategy()` | The USDC address and the Strategy address. |
+| `is_paused()`, `admin()`, `code_hash()`, `version()` | Status and build identity. |
+
+</Tab>
+
+<Tab value="Yield (PT and YT)">
+
+The PT/YT engine, **and the YT token**. It strips SR into PT and YT, recombines them, and tracks every YT
+holder's interest. PT itself is a separate Stellar Asset Contract that only this contract can mint.
+
+**Writes**
+
+| Function | Description |
+| --- | --- |
+| `mint_py(from, receiver, sr_in) -> i128` | Take `sr_in` SR from `from`, mint equal-face PT **and** YT to `receiver`. Returns face minted. Refused at or after expiry. |
+| `redeem_py(from, receiver, py_amount) -> i128` | Burn `py_amount` face and send the SR to `receiver`. Before expiry it burns PT **and** YT. At or after expiry it burns PT only. |
+| `redeem_due_interest(user) -> (i128, i128)` | Pay out `user`'s accrued interest as SR. Returns `(paid_to_user, fee_to_treasury)`. Callable by anyone, always pays the holder. |
+| `redeem_due_interest_to(user, receiver) -> (i128, i128)` | The same, paying `receiver`. Used by the Router to claim and unwrap in one transaction. |
+| `checkpoint(user) -> i128` | Settle `user`'s interest without paying it out. |
+| `stamp_expiry_index() -> i128` | Permissionless. Pins the index at expiry (write-once). After this YT accrues nothing. |
+| `bump_holder(user)` | Permissionless keep-alive for a holder's interest record and YT balance. |
+| `transfer(from, to, amount)`, `transfer_from(spender, from, to, amount)` | **YT** transfers. Both parties' interest is settled first. |
+| `approve(from, spender, amount, expiration_ledger)`, `burn(from, amount)`, `burn_from(spender, from, amount)` | Standard YT allowance and burns. |
+
+**Reads**
+
+| Function | Returns |
+| --- | --- |
+| `py_index()` | The PT/YT index, 12-decimal. A pure view that may lag SR by one sync. Use it for quotes. |
+| `py_index_current()` | The synchronized index. It writes, so price **value-moving** paths on it, not on `py_index`. |
+| `claimable_interest(user)` | SR `user` could withdraw now, before the yield fee. |
+| `interest_of(user)` | The holder's full record: `index`, `accrued`, `withdrawn`. |
+| `solvency()` | `(sr_held, sr_required, surplus)` for this series. Surplus is owed to YT holders. |
+| `surplus()` / `sweepable()` | SR held beyond PT cover, and the provably unowed part of it. |
+| `balance(id)`, `total_supply()`, `allowance(from, spender)`, `decimals()`, `name()`, `symbol()` | YT token reads. `decimals` is `7`, `symbol` is `YT`. |
+| `sr_token()`, `pt_token()` | The SR and PT addresses. |
+| `expiry()`, `expiry_index()`, `is_expired()` | Maturity (unix seconds), the pinned index once stamped, and the expired flag. |
+| `total_py()`, `total_accrued()`, `yield_fee_bps()`, `treasury()` | Series totals and the protocol fee. |
+| `is_paused()`, `admin()`, `code_hash()`, `version()` | Status and build identity. |
+
+</Tab>
+
+<Tab value="SR Market">
+
+The PT/SR AMM. The fee scales with time to expiry, and the curve re-anchors itself from the last
+implied rate, so any seed ratio opens at the configured rate.
+
+**Writes**
+
+| Function | Description |
+| --- | --- |
+| `swap_exact_sr_for_pt(trader, sr_in, min_pt_out, deadline_ledger) -> i128` | Buy PT with exactly `sr_in` SR. Returns PT out. |
+| `swap_exact_pt_for_sr(trader, pt_in, min_sr_out, deadline_ledger) -> i128` | Sell exactly `pt_in` PT for SR. Returns SR out. |
+| `buy_yt_exact_out(user, yt_out, max_sr_in, deadline_ledger) -> i128` | Buy exactly `yt_out` YT. The pool mints the pair, keeps the PT and passes you the YT. Returns SR spent. |
+| `sell_yt_exact_in(user, yt_in, min_sr_out, deadline_ledger) -> i128` | Sell exactly `yt_in` YT. The pool recombines it with its own PT. Returns SR received. |
+| `add_liquidity(lp, pt_in, sr_in, min_shares) -> i128` | Add PT and SR, receive LP shares. Refused after expiry. |
+| `remove_liquidity(lp, shares, min_pt_out, min_sr_out) -> (i128, i128)` | Burn shares, receive PT and SR. **Open while paused and after expiry.** |
+| `bump_lp(lp)` | Permissionless keep-alive for an LP's share entry. |
+
+**Reads**
+
+| Function | Returns |
+| --- | --- |
+| `quote_buy_pt(sr_in)` / `quote_sell_pt(pt_in)` | PT out, SR out. |
+| `quote_buy_yt(yt_out)` / `quote_sell_yt(yt_in)` | SR to pay, SR received. |
+| `pt_price()` | PT price in asset units, 12-decimal. `0` means no price. |
+| `implied_apy()` | The implied APY as a 12-decimal fraction. `0` means none. |
+| `fee_preview(notional)` | The fee a trade of `notional` PT face would pay right now. |
+| `reserves()` / `asset_reserve()` | `(pt_reserve, sr_reserve)`, and the SR reserve valued in asset units. |
+| `lp_position(lp)` | `(shares, pt, sr)` for an LP. |
+| `total_shares()`, `last_ln_implied_rate()`, `ln_fee_root()`, `scalar_root()` | Pool and curve state. |
+| `treasury_fee_share_bps()`, `treasury_earned()` | The protocol's share of each swap fee, and its lifetime take. |
+| `pt_token()`, `sr_token()`, `yield_contract()`, `expiry()`, `treasury()` | Wiring. |
+| `is_paused()`, `admin()`, `code_hash()`, `version()` | Status and build identity. |
 
 </Tab>
 
 <Tab value="Fixed-Rate Vault">
 
-A product on top of the engine: deposit USDC, lock a guaranteed payout.
+Deposit USDC and receive a **receipt** that pays a fixed amount at maturity. The receipt is an
+on-chain record owned by your address (read it with `get_receipt`). It is **not a token** and has no
+transfer function. The vault holds the PT that backs every receipt, and enforces `pt_inventory >= total_liability`
+after every change. The rate can never be set above `max_rate_bps` (an on-chain ceiling of 20% on mainnet).
 
 **Writes**
 
 | Function | Description |
 | --- | --- |
-| `deposit(user, amount) -> u64` | Deposit `amount` USDC, lock the current fixed rate, and issue a receipt. Returns the receipt id. |
-| `redeem(receipt_id) -> i128` | At/after maturity, redeem a receipt for its full payout in USDC. |
-| `seed(from, amount) -> u64` | Add coupon capacity (mints PT inventory). Creates no liability. |
-| `harvest(max_positions) -> (i128, i128)` | Permissionless upkeep: claim retained YT yield and reinvest as PT capacity (paginated). |
+| `deposit(user, amount) -> u64` | Lock a fixed rate. Pulls `amount` USDC, returns the new `receipt_id`. |
+| `redeem(receipt_id) -> i128` | Redeem a **matured** receipt. Pays the owner what it can immediately, so a large receipt may need more than one call. Returns USDC paid by this call. |
+| `bump_receipt(receipt_id)` | Permissionless keep-alive so a long-dated receipt cannot archive before maturity. |
+| `harvest() -> (i128, i128)` | Claim the vault's YT yield and reinvest it as PT capacity. Permissionless. |
 
 **Reads**
 
 | Function | Returns |
 | --- | --- |
-| `quote(amount)` | `(payout, coupon, rate_bps)` — what a deposit of `amount` would lock in right now. |
-| `stats()` | Vault health: PT inventory, YT inventory, total liability, coupon capacity, rate, maturity. |
-| `get_receipt(receipt_id)` | A receipt's details (owner, principal, payout, rate, maturity, open). |
-| `rate_bps()` / `maturity()` / `is_paused()` | Current quoted rate, maturity, pause state. |
+| `quote(amount)` | `(payout, coupon, rate_bps)` for a deposit of `amount`. |
+| `get_receipt(receipt_id)` | The receipt: `owner`, `principal`, `payout`, `rate_bps`, `maturity`, `open`, and bookkeeping fields. |
+| `redeem_remaining(receipt_id)` | How much more USDC a receipt still needs before it can be paid. `0` means ready or closed. |
+| `stats()` | `pt_inventory`, `yt_inventory`, `total_liability`, `coupon_capacity`, `total_residue`, `total_collected`, `rate_bps`, `maturity`, `open_receipts`. |
+| `rate_bps()` / `max_rate_bps()` | The current rate and its on-chain ceiling. |
+| `maturity()`, `total_liability()`, `total_residue()`, `loss_factor()` | Series state. `loss_factor` is `1.0` (12-decimal) when no venue loss has been recognized. |
+| `surplus()` | What a surplus sweep could release now. |
+| `pt_token()`, `sr_token()`, `underlying()`, `yield_contract()` | Wiring. |
+| `is_paused()`, `admin()`, `code_hash()`, `version()` | Status and build identity. |
 
 </Tab>
 
-<Tab value="Market">
+<Tab value="Router">
 
-The time-decay AMM for trading PT against USDC.
+A single-signature front door so users can pay and receive **plain USDC**. It holds no balances
+between calls and has no privileges. Every route can also be done by calling SR, the market and the
+engine yourself.
 
 **Writes**
 
 | Function | Description |
 | --- | --- |
-| `add_liquidity(lp, pt_in, usdc_in) -> i128` | Provide PT + USDC; returns LP shares minted. |
-| `remove_liquidity(lp, shares) -> (i128, i128)` | Burn shares; returns `(pt_out, usdc_out)`. Allowed any time. |
-| `swap_exact_pt_for_usdc(trader, pt_in, min_usdc_out) -> i128` | Sell PT for USDC, with a slippage floor. |
-| `swap_exact_usdc_for_pt(trader, usdc_in, min_pt_out) -> i128` | Buy PT with USDC, with a slippage floor. |
-
-**Reads** (all panic-free — return `0` for an undefined/empty state)
-
-| Function | Returns |
-| --- | --- |
-| `quote_pt_for_usdc(pt_in)` / `quote_usdc_for_pt(usdc_in)` | USDC/PT out for a hypothetical swap. |
-| `pt_price()` | PT price in USDC (12-dp fixed point); drifts to par near maturity. |
-| `implied_apy()` | The headline implied APY (12-dp fraction; `0.08` = 8%). |
-| `reserves()` | `(pt_reserve, usdc_reserve)`. |
-| `lp_position(lp)` | `(shares, pt_claim, usdc_claim)`. |
-| `fee_bps()` / `maturity()` / `is_paused()` | Fee, maturity, pause state. |
-
-</Tab>
-
-<Tab value="Yield adapter">
-
-The translator to the external yield source. You rarely call this directly — the engine does —
-but it exposes useful read-only views.
+| `buy_pt_with_usdc(user, usdc_in, min_pt_out, deadline_ledger) -> i128` | Spend exactly `usdc_in` USDC for PT. Reverts below `min_pt_out`. |
+| `buy_yt_with_usdc(user, yt_out, usdc_in, deadline_ledger) -> i128` | Deliver exactly `yt_out` YT using up to `usdc_in` USDC. Anything the market does not need comes back as SR. |
+| `sell_pt_for_usdc(user, pt_in, min_usdc_out, deadline_ledger) -> i128` | Sell PT for USDC. |
+| `sell_yt_for_usdc(user, yt_in, min_usdc_out, deadline_ledger) -> i128` | Sell YT for USDC. |
+| `redeem_py_for_usdc(user, py_amount, min_usdc_out) -> i128` | Redeem at face through the engine. After expiry this is the PT exit: no curve, no slippage. |
+| `claim_yield_to_usdc(user, min_usdc_out) -> i128` | Claim accrued YT yield and receive USDC. |
 
 **Reads**
 
 | Function | Returns |
 | --- | --- |
-| `current_rate()` | The live yield-source exchange rate (12-dp fixed point). Its growth over time is the realized yield. |
-| `position_value(shares)` | The USDC value of `shares` at the live rate. |
-| `total_shares()` | The protocol's total position in the yield source. |
-| `underlying()` / `pool()` | The USDC asset and the yield-source pool address. |
-| `rate_bound()` | `(last_rate, last_ts, max_apr_bps)` — the rate sanity-bound state (for monitoring). |
+| `quote_buy_pt_with_usdc(usdc_in)` | PT out. |
+| `quote_buy_yt_with_usdc(yt_out)` | USDC needed. Pad it by your slippage tolerance and pass that as `usdc_in`. |
+| `quote_sell_pt_for_usdc(pt_in)` / `quote_sell_yt_for_usdc(yt_in)` | USDC out. |
+| `quote_redeem_py_for_usdc(py_amount)` | USDC a redeem would pay (face value). |
+| `quote_claim_yield(user)` | USDC a claim would pay now, net of the yield fee. |
+| `market()`, `yield_contract()`, `sr_token()`, `pt_token()`, `underlying()`, `expiry()` | Wiring. |
+| `is_paused()`, `admin()`, `code_hash()`, `version()` | Status and build identity. |
+
+A paused router removes convenience, never access: exits through SR, the market and the engine stay open.
+
+</Tab>
+
+<Tab value="Strategy">
+
+The Blend adapter. **Users do not call it.** Deposits and redemptions are restricted to SR. It is
+documented here because its views are useful for monitoring.
+
+| Function | Returns |
+| --- | --- |
+| `current_rate()` | The live Blend `b_rate` (12-decimal), with a sanity bound applied. |
+| `position_value(shares)` | USDC value of `shares` at the live rate. |
+| `total_shares()` | The strategy's whole Blend position. |
+| `available_liquidity()` | USDC the pool can actually pay out right now. |
+| `claimable_emissions()` | BLND accrued and not yet claimed. |
+| `claim_emissions() -> i128` | Permissionless. Sends accrued BLND to a fixed destination. `0` when there is nothing. |
+| `underlying()` / `pool()` / `admin()` / `code_hash()` / `version()` | Wiring and build identity. |
 
 </Tab>
 
 </Tabs>
 
-## Common patterns
+## USTRY series
 
-- **Governance & safety reads** are available on every contract: `admin()`, `pending_admin()`, `pending_upgrade()`, `timelock()`, `code_hash()`, `version()` — useful for monitoring dashboards.
-- **Authorization.** Write calls require the relevant party (`user`, `lp`, `trader`, owner) to authorize — i.e. the user's wallet signs. There are no functions that let a third party move someone else's funds.
-- **Pause semantics.** When paused, *inflows* (`mint`, `deposit`, `seed`, `add_liquidity`, swaps) are blocked; *exits* (`claim_yield`, `redeem_pt`, `combine_and_redeem`, vault `redeem`, `remove_liquidity`) always remain open.
+The USTRY contracts are a separate family. PT and YT here are measured in **USD face**, while deposits
+and payouts are in **USTRY** units. See [Architecture](/docs/developers/architecture#the-ustry-series-family).
 
-Next: how to actually [read this state](/docs/developers/reading-state) and
-[submit transactions](/docs/developers/integrating).
+<Tabs items={['USTRY Series', 'USTRY Market', 'Claim tokens', 'NAV feed']}>
+
+<Tab value="USTRY Series">
+
+**Writes**
+
+| Function | Description |
+| --- | --- |
+| `deposit(owner, amount)` | Deposit USTRY, receive sUSTRY receipts. Needs no price. Gated by the receipt cap. |
+| `deposit_split(owner, amount, min_face) -> i128` | Deposit and split in one call into equal USD-face PT and YT. Needs a fresh NAV. Returns face minted. |
+| `split(owner, amount, min_face) -> i128` | Split receipts you hold into PT and YT. Needs a fresh NAV. |
+| `withdraw_receipts(owner, amount)` | Turn receipts back into USTRY. Never needs the oracle. |
+| `redeem(owner, face, min_tokens) -> i128` | Before finalization: burn matching PT and YT. After: burn PT alone. Pays USTRY. Never calls the oracle. |
+| `claim_yield(owner) -> i128` | Pay out accrued YT yield in USTRY. Never calls the oracle. |
+| `sync() -> State` | Permissionless. Folds newly published NAV into the stored state. Never reverts on a bad feed. |
+| `finalize() -> State` | Permissionless. Freezes PT and YT allocations after maturity, on a post-expiry sample or after the grace period. |
+
+**Reads**
+
+| Function | Returns |
+| --- | --- |
+| `status()` | The health snapshot the app uses: `state`, `oracle_ok`, `fresh`, `entry_open`, `boundary_seen`, `finalizable`, `synced`. |
+| `state()` | The stored state: `total_yt`, `high_water`, `factor`, `finalized`, `receipts`, `face`, `backing`, and the last and anchor observations. |
+| `config()` | Wiring and parameters: `asset`, `oracle`, `expiry`, `max_age`, `grace`, `max_apr_bps`, `cap`, `window`, `paused`, token addresses. |
+| `split_cap()` | The ceiling on `backing` (the USTRY behind PT and YT). |
+| `balance(owner)` | A holder's `receipt`, `pt`, `yt`, `factor`, `accrued`. |
+| `claim_balance(owner, kind)` / `claim_supply(kind)` | A claim-token balance or supply, where `kind` is `0` receipt, `1` PT, `2` YT. |
+| `value_usd(amount)` | USD value of `amount` USTRY at the newest fresh sample. |
+| `code_hash()`, `version()` | Build identity. |
+
+`transfer_claim` and `burn_claim` exist but can only be called by the bound claim-token contracts. Use the
+claim tokens' own `transfer` and `burn`.
+
+</Tab>
+
+<Tab value="USTRY Market">
+
+The PT/USTRY AMM, with the same curve family and fee design as the SR Market.
+
+**Writes**
+
+| Function | Description |
+| --- | --- |
+| `swap_exact_asset_for_pt(trader, asset_in, min_pt_out, deadline_ledger) -> i128` | Buy PT with exactly `asset_in` USTRY. |
+| `swap_exact_pt_for_asset(trader, pt_in, min_asset_out, deadline_ledger) -> i128` | Sell exactly `pt_in` PT for USTRY. |
+| `buy_yt_exact_out(user, yt_out, max_asset_in, deadline_ledger) -> i128` | Buy at least `yt_out` YT. Mints new PT and YT, so it needs a fresh NAV. |
+| `sell_yt_exact_in(user, yt_in, min_asset_out, deadline_ledger) -> i128` | Sell exactly `yt_in` YT. |
+| `add_liquidity(lp, pt_in, asset_in, min_shares) -> i128` | Add PT and USTRY. |
+| `remove_liquidity(lp, shares, min_pt_out, min_asset_out) -> (i128, i128)` | Remove liquidity. Open while paused, after expiry, during an oracle outage and after a clawback. Never calls the oracle. |
+| `bump_lp(lp)` | Permissionless keep-alive. |
+
+**Reads**
+
+`quote_buy_pt(asset_in)`, `quote_sell_pt(pt_in)`, `quote_buy_yt(yt_out)`, `quote_buy_yt_face(yt_out)`,
+`quote_sell_yt(yt_in)`, `pt_price()`, `implied_apy()`, `fee_preview(notional)`, `reserves()`,
+`asset_reserve_usd()`, `lp_position(lp)`, `total_shares()`, `yt_entry_open()`, `custody_ok()` (false after a
+clawback hit the pool), `series()`, `pt_token()`, `yt_token()`, `asset_token()`, `expiry()`,
+`treasury_fee_share_bps()`, `treasury_earned()`, `ln_fee_root()`, `scalar_root()`, `last_ln_implied_rate()`,
+`pending_fee_params()`, `is_paused()`, `admin()`, `code_hash()`, `version()`.
+
+Fee changes are scheduled (`schedule_fee_params`) and take effect only after the governance timelock, so
+traders and LPs see them coming.
+
+</Tab>
+
+<Tab value="Claim tokens">
+
+The three claim tokens of a series (sUSTRY receipt, PT-USTRY, YT-USTRY) are SEP-41 contract tokens that read
+balances from the series.
+
+| Function | Description |
+| --- | --- |
+| `transfer(from, to, amount)`, `transfer_from(spender, from, to, amount)` | Move claims. The recipient must not be a series contract. |
+| `approve(from, spender, amount, expiration_ledger)`, `burn(from, amount)`, `burn_from(spender, from, amount)` | Standard allowance and burns. |
+| `balance(id)`, `total_supply()`, `allowance(from, spender)`, `decimals()`, `name()`, `symbol()` | Standard reads. `decimals` is `7`. |
+| `series()`, `kind()` | The owning series and the token kind (`0` receipt, `1` PT, `2` YT). |
+
+</Tab>
+
+<Tab value="NAV feed">
+
+A standard **SEP-40** price feed. On testnet this is a Spield-run feed. On mainnet it is
+RedStone's.
+
+| Function | Returns |
+| --- | --- |
+| `base()`, `assets()`, `decimals()`, `resolution()` | Feed metadata. Prices use 8 decimals. |
+| `lastprice(asset)` | The newest `PriceData { price, timestamp }`, or none. |
+| `prices(asset, records)` | The last `records` samples, oldest first. |
+| `price(asset, timestamp)` | The sample at a timestamp. |
+
+</Tab>
+
+</Tabs>
+
+<Callout type="info" title="Errors">
+  Contract failures surface as `Error(Contract, #N)`. `@spield/sdk` translates these into plain
+  English and a stable `error.reason`. See [the SDK page](/docs/developers/sdk#error-handling).
+</Callout>
+
+Next: [Tokens](/docs/developers/tokens), [Reading state](/docs/developers/reading-state) and
+[Events](/docs/developers/events).

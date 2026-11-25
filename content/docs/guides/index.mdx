@@ -1,28 +1,35 @@
 ---
 title: Guides & tutorials
-description: Step-by-step walkthroughs for the most common Spield tasks — earning a fixed yield, going long on yield, providing liquidity, and bridging USDC.
+description: Step-by-step walkthroughs for the most common Spield tasks. Earn a fixed yield, go long on yield, provide liquidity, trade with SR, use USTRY, bridge USDC, and redeem at maturity.
 icon: GraduationCap
 ---
 
 import { Card, Cards } from 'fumadocs-ui/components/card';
-import { Lock, TrendingUp, Droplets, ArrowRightLeft } from 'lucide-react';
+import { Lock, TrendingUp, Droplets, ArrowRightLeft, Layers, Landmark, CircleCheck } from 'lucide-react';
 
-Practical, click-by-click walkthroughs. Each guide assumes you've already
+Practical, click-by-click walkthroughs. Each guide assumes you have already
 [connected a wallet](/docs/getting-started/connect-a-wallet) and
-[funded it with USDC](/docs/getting-started/funding-your-wallet).
+[funded it with USDC](/docs/getting-started/funding-your-wallet), and that you have picked an
+open series in the app header.
 
 <Cards>
-  <Card icon={<Lock />} title="Earn a fixed yield" href="/docs/guides/earn-fixed-yield" description="Lock a guaranteed return using the Fixed-Rate Vault or by buying PT." />
-  <Card icon={<TrendingUp />} title="Go long on yield" href="/docs/guides/long-yield" description="Get leveraged exposure to the rate by holding YT." />
-  <Card icon={<Droplets />} title="Provide liquidity" href="/docs/guides/provide-liquidity" description="Earn swap fees by supplying PT + USDC to the market." />
-  <Card icon={<ArrowRightLeft />} title="Bridge USDC to Stellar" href="/docs/guides/bridge-usdc" description="Bring USDC from another chain using the built-in bridge." />
+  <Card icon={<Lock />} title="Earn a fixed yield" href="/docs/guides/earn-fixed-yield" description="Lock a fixed return using the Fixed-Rate Vault or by buying PT." />
+  <Card icon={<TrendingUp />} title="Go long on yield" href="/docs/guides/long-yield" description="Get leveraged exposure to the rate by buying and holding YT." />
+  <Card icon={<Droplets />} title="Provide liquidity" href="/docs/guides/provide-liquidity" description="Earn swap fees by supplying PT and SR to the market." />
+  <Card icon={<Layers />} title="Trade with SR" href="/docs/guides/trade-with-sr" description="Pay or receive in USDC or SR, and see how many signatures each route takes." />
+  <Card icon={<Landmark />} title="Treasury yield (USTRY)" href="/docs/guides/treasury-yield" description="The tokenized-Treasury series on testnet, from getting USTRY to redeeming." />
+  <Card icon={<ArrowRightLeft />} title="Bridge USDC" href="/docs/guides/bridge-usdc" description="Move USDC to and from other chains with Circle CCTP." />
+  <Card icon={<CircleCheck />} title="Redeem at maturity" href="/docs/guides/redeem-at-maturity" description="Collect PT, vault receipts, YT yield, and liquidity from a matured series." />
 </Cards>
 
 ## Choosing a guide
 
 | Your goal | Guide | Risk |
 | --- | --- | :---: |
-| A predictable, guaranteed return | [Earn a fixed yield](/docs/guides/earn-fixed-yield) | Low |
+| A predictable, fixed return | [Earn a fixed yield](/docs/guides/earn-fixed-yield) | Low |
 | Bet that yields will rise | [Go long on yield](/docs/guides/long-yield) | Higher |
 | Earn income from trading activity | [Provide liquidity](/docs/guides/provide-liquidity) | Medium |
-| Just get USDC onto Stellar | [Bridge USDC](/docs/guides/bridge-usdc) | — |
+| Pay or receive in SR, or skip a Blend hop | [Trade with SR](/docs/guides/trade-with-sr) | Same as the trade |
+| Earn on tokenized US Treasuries (testnet) | [Treasury yield](/docs/guides/treasury-yield) | Higher |
+| Move USDC between chains and Stellar | [Bridge USDC](/docs/guides/bridge-usdc) | Bridge risk |
+| Collect from a series that has ended | [Redeem at maturity](/docs/guides/redeem-at-maturity) | Low |

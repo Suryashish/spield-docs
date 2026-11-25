@@ -1,20 +1,25 @@
 ---
 title: Provide liquidity
-description: Step-by-step — supply PT + USDC to Spield's market, earn swap fees, and exit whenever you want.
+description: Step-by-step. Supply PT and SR (paid in USDC) to Spield's PT/SR market, earn 80% of the swap fees, and exit whenever you want.
 icon: Droplets
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-Providing liquidity earns you a share of every swap fee. Thanks to Spield's time-decay market,
-LPs who hold to maturity face **near-zero impermanent loss** — see
-[Liquidity](/docs/features/liquidity) for why.
+Providing liquidity earns you a share of every swap fee: **80% of each fee goes to liquidity
+providers and 20% to the protocol treasury**. The pool pairs **PT with SR**, so the SR half of your
+position keeps earning the yield source's rate while it sits in the pool. LPs who hold to maturity
+also face little impermanent loss. See [Liquidity](/docs/features/liquidity) for why.
 
 ## Before you start
 
-You'll need both **PT and USDC**. If you don't hold PT yet, get some by
-[minting PT + YT](/docs/features/pt-yt-tokens) or buying PT on the market first.
+You need **PT** and a way to pay the other side. You supply PT from your wallet, and the app turns USDC
+into the matching SR for you.
+
+- If you do not hold PT in this series yet, get some first: [mint PT + YT](/docs/features/pt-yt-tokens) on the Deposit page, or buy PT on Markets.
+- You need a PT trustline for the series (the app shows **Enable PT**).
+- The series must be open. At maturity the pool is closed to new liquidity, and you can only withdraw.
 
 ## Add liquidity
 
@@ -23,36 +28,39 @@ You'll need both **PT and USDC**. If you don't hold PT yet, get some by
 <Step>
 ### Open the Liquidity page
 
-Select **Liquidity** in the app sidebar.
+Select **Liquidity** in the app sidebar and make sure **Add** is selected.
 </Step>
 
 <Step>
-### Enter an amount
+### Enter your PT amount
 
-Enter how much you want to provide. The app **auto-mirrors** the matching amount of the other
-asset at the pool's current ratio — so you add balanced liquidity without moving the price.
+Type the **PT amount** you want to supply. The app **mirrors** the matching amount at the pool's
+current ratio in **USDC required**, so you add balanced liquidity without moving the price. The
+**Pay with** menu next to USDC lets you pay from another chain instead (see [Bridge USDC](/docs/guides/bridge-usdc)).
 </Step>
 
 <Step>
 ### Confirm
 
-Approve in your wallet. You receive **LP shares** representing your slice of the pool.
+Click **Add Liquidity** (or **Enable PT** first). Adding from your Stellar wallet is **two
+signatures**, shown in the **How your funds move** strip: USDC is supplied to Blend for SR, then
+the SR is added to the pool together with your PT. You receive **LP shares**.
 </Step>
 
 <Step>
 ### Earn fees
 
-From the next trade onward, your shares accrue a portion of swap fees. Your claim on the pool
-grows over time.
+From the next trade onward your shares accrue a portion of the swap fees. Your claim on the pool
+grows over time, and the SR half keeps earning yield.
 </Step>
 
 </Steps>
 
 ## Monitor your position
 
-The Liquidity page shows your **shares**, the **PT + USDC** they currently redeem for, and the
-fees earned. Because the pool's composition shifts as people trade, your underlying PT/USDC
-split will move around — that's normal.
+The **Your liquidity** panel shows your **LP shares** and the PT and USDC they currently redeem
+for at the live price. Because the pool's composition shifts as people trade, your PT and USDC split
+will move around. That is normal.
 
 ## Remove liquidity
 
@@ -61,31 +69,41 @@ split will move around — that's normal.
 <Step>
 ### Choose how much to withdraw
 
-Use the percentage slider to remove part or all of your position.
+Switch to **Remove** and use the slider under **Amount to remove** to take part or all of your
+position.
 </Step>
 
 <Step>
 ### Confirm
 
-Approve in your wallet. You receive your proportional **PT and USDC** back, including accrued
-fees.
+Click **Remove Liquidity** and approve in your wallet. One signature returns your share of the
+pool as **PT and SR**, including accrued fees.
+</Step>
+
+<Step>
+### Turn it back into USDC (optional)
+
+You can leave the SR to keep earning, unwrap it in the **SR Wrapper**, or sell the PT on **Markets**.
+Before maturity, the **Receive on** menu can also send USDC straight to another chain (the app
+sells the PT side and unwraps the SR as part of the journey). After maturity the PT redeems at par.
+See [Redeem at maturity](/docs/guides/redeem-at-maturity).
 </Step>
 
 </Steps>
 
 <Callout title="You can always exit">
-  Removing liquidity is never blocked — not at maturity, not during an emergency pause. There's
-  no lock-up.
+  Removing liquidity is never blocked. It stays open after maturity and during an emergency
+  pause. There is no lock-up.
 </Callout>
 
 ## Tips
 
-- **Hold to maturity for the best result.** That's when the near-zero-IL property is strongest, because PT's drift to par is fully priced in.
+- **Hold to maturity for the best result.** That is when the low-impermanent-loss property is strongest, because PT's drift to par is fully priced in.
 - **Returns track volume.** More trading through the pool means more fees for LPs.
-- **Add at the current ratio.** The app does this for you; it keeps things fair and avoids price impact.
+- **Add at the current ratio.** The app does this for you. It keeps things fair and avoids price impact.
 
-<Callout type="warn" title="Impermanent loss isn't fully zero">
-  "Near-zero" applies to PT's predictable march to par when you hold to maturity. Unexpected
+<Callout type="warn" title="Impermanent loss is not fully zero">
+  "Little" applies to PT's predictable march to par when you hold to maturity. Unexpected
   yield swings can still cause some divergence if you exit early. See
   [risks](/docs/resources/security).
 </Callout>

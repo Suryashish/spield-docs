@@ -1,64 +1,69 @@
 ---
 title: Quick overview
-description: A 3-step path from zero to your first Spield position — connect a wallet, fund it with USDC, and choose a product.
+description: A 3-step path from zero to your first Spield position. Connect a wallet, fund it with USDC, and choose a series and a product.
 icon: Rocket
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 
-Getting started with Spield takes three steps. This page is the map; each step has its
+Getting started with Spield takes three steps. This page is the map. Each step has its
 own short guide.
-
-<DevPhaseNote />
 
 <div className="fd-steps">
 
 ### Connect a wallet
 
-Spield is used through a **Stellar wallet** browser extension. Connect it once and the app
-remembers you. → [Connect a wallet](/docs/getting-started/connect-a-wallet)
+Spield is used through a **Stellar wallet** (a browser extension or a web wallet such as Albedo).
+Connect it once and the app remembers you. → [Connect a wallet](/docs/getting-started/connect-a-wallet)
 
 ### Fund your wallet with USDC
 
 You deposit **USDC** into Spield. Get it onto Stellar from an exchange, or bring it from
-another chain with the built-in bridge. → [Funding your wallet](/docs/getting-started/funding-your-wallet)
+another chain with Circle CCTP. → [Funding your wallet](/docs/getting-started/funding-your-wallet)
 
 ### Make your first deposit
 
-Pick what you want — a **fixed return**, **leveraged yield**, or to **provide liquidity** —
-and deposit. The first time, you'll click **Enable trustline** once (see
-[Trustlines](/docs/getting-started/trustlines)), then deposit.
+Open [app.spield.live](https://app.spield.live), **pick a series** in the header, then choose what you
+want: a **fixed return**, **leveraged yield**, or to **provide liquidity**. The first time you
+receive PT in a series you click **Enable PT** once (see [Trustlines](/docs/getting-started/trustlines)).
 → [Your first deposit](/docs/getting-started/your-first-deposit)
 
 </div>
 
-## What you'll need
+## What you will need
 
 | Requirement | Details |
 | --- | --- |
 | A **Stellar wallet** | A browser extension like Freighter (see the [full list](/docs/getting-started/connect-a-wallet)). |
-| A little **XLM** | Stellar's native asset, used for tiny network fees. A fraction of an XLM is plenty. |
-| Some **USDC** | The asset you deposit. Start with any amount you're comfortable with. |
+| A little **XLM** | Stellar's native asset, used for tiny network fees and account reserves. A few XLM is plenty. |
+| Some **USDC** | The asset you deposit. Start with an amount you are comfortable with. |
+| An **open series** | Each maturity is a separate series. Check the series menu in the app header. |
 
-<Callout title="New to Stellar wallets?">
-  A wallet is just a browser extension that holds your keys and signs transactions. It's
-  free, takes a minute to set up, and Spield never sees your secret key — you approve every
-  action yourself.
+## Where things stand today
+
+<Callout title="Both mainnet series have matured">
+  Spield has been live on Stellar mainnet since September 2026. Series 1 and Series 2 have both
+  matured, so as of late November 2026 **no mainnet series is open for new deposits**. You can still
+  [redeem matured positions](/docs/guides/redeem-at-maturity) on mainnet, and new series are
+  announced in the app and in the SDK's hosted series list. To try the full flow today, use
+  **testnet**, where short Blend series and an Etherfuse USTRY series are open. See
+  [Series and maturities](/docs/how-it-works/series-and-maturities).
 </Callout>
 
 ## Pick your path
 
-Not sure which product is for you? Here's the quick version:
+Not sure which product is for you? Here is the quick version:
 
 <Cards>
-  <Card title="I want a guaranteed return" href="/docs/guides/earn-fixed-yield" description="Use the Fixed-Rate Vault or buy PT — lock a known APY for a known term." />
-  <Card title="I want leveraged yield" href="/docs/guides/long-yield" description="Buy YT — cheap, amplified exposure to the rate." />
-  <Card title="I want to earn fees" href="/docs/guides/provide-liquidity" description="Provide liquidity to the market and collect swap fees." />
+  <Card title="I want a fixed return" href="/docs/guides/earn-fixed-yield" description="Use the Fixed-Rate Vault or buy PT. Lock a known rate for a known term." />
+  <Card title="I want leveraged yield" href="/docs/guides/long-yield" description="Buy YT for cheap, amplified exposure to the rate." />
+  <Card title="I want to earn fees" href="/docs/guides/provide-liquidity" description="Provide liquidity to the PT/SR market and collect swap fees." />
+  <Card title="I hold a matured position" href="/docs/guides/redeem-at-maturity" description="Redeem PT, vault receipts, claim YT yield, and remove liquidity." />
   <Card title="I just want to understand it first" href="/docs/how-it-works" description="Read how the protocol works before depositing anything." />
 </Cards>
 
-<Callout type="warn" title="Use what you can afford to experiment with">
-  Spield is a young protocol. As with any DeFi product, only deposit what you're comfortable
-  putting at risk, and read [Understanding the risks](/docs/resources/security) first.
+<Callout type="warn" title="Use what you can afford to lose">
+  Spield is a young protocol, and launch deposit caps are small on purpose. Only deposit what you
+  are comfortable putting at risk, and read [Understanding the risks](/docs/resources/security) first.
 </Callout>

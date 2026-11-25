@@ -1,0 +1,371 @@
+---
+title: "@spield/sdk"
+description: The TypeScript SDK for Spield. Pick a series, read markets and positions, lock a fixed rate, trade yield and redeem, on mainnet and testnet.
+icon: Package
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+`@spield/sdk` is the recommended way to build on Spield. It covers Blend USDC series and USTRY
+(tokenized Treasury) series through one small API: it picks the right contracts, converts amounts,
+adds missing trustlines, simulates every write, asks a wallet to sign, and waits for confirmation.
+
+This page is the guide. The package's README and USAGE files on npm carry the full API tables.
+
+- Version `0.6.1`, Stellar **mainnet** and **testnet**
+- Node 22+ and modern browsers
+- ESM, CJS and type declarations
+- Entry points: `@spield/sdk`, `@spield/sdk/wallets`, `@spield/sdk/advanced`
+
+## Install
+
+```bash
+npm install @spield/sdk      # or: pnpm add @spield/sdk / yarn add @spield/sdk
+```
+
+`@stellar/stellar-sdk` ships as a dependency, as do the small official Freighter, LOBSTR and Albedo
+packages (loaded only by `@spield/sdk/wallets`, and only when that wallet is used).
+
+## Choose a network
+
+```ts
+import { SpieldClient, mainnet, testnet } from '@spield/sdk';
+
+const onTestnet = new SpieldClient();                       // testnet is the default
+const onMainnet = new SpieldClient({ network: mainnet() }); // real funds
+```
+
+`mainnet()` defaults to the community RPC `https://mainnet.sorobanrpc.com`, which rate-limits bursts. The
+SDK keeps at most 4 requests in flight per RPC (`rpcConcurrency`) and retries a request refused with HTTP
+429, but for production pass your own provider: `mainnet({ rpcUrl, horizonUrl })`. A client refuses
+a series from the other network, so a copied config fails at startup.
+
+<Callout type="warn" title="Mainnet moves real funds">
+  Every write on mainnet spends real XLM in fees and moves real USDC. Call `series.preview(...)` first.
+  It simulates against the live contracts and signs nothing.
+</Callout>
+
+## Choose a series
+
+A series is one deployment with a fixed maturity. Series last weeks, so the SDK ships a list of the known
+ones and you pick one **by id**.
+
+```ts
+const spield = new SpieldClient({ network: mainnet() });
+await spield.loadSeries();                          // adds series launched after this SDK version
+
+spield.listSeries();                                // every series, newest maturity first
+spield.listSeries({ status: 'live' });
+spield.listSeries({ source: 'ustry', status: 'live' });
+// [{ id, name, source, asset, expiry, maturityDate, status, daysToMaturity }, ...]
+
+const series = spield.series('mainnet-blend-2');    // always pass an id in production code
+const blend = spield.blendSeries('testnet-blend-3'); // typed handle: BlendSeries
+const ustry = spield.ustrySeries();                  // newest live USTRY series
+```
+
+`listSeries()` makes no network call. `series()` with no id returns your `defaultSeries`, else the newest
+live Blend series. That is fine for a demo and wrong for a product, because the answer changes when a new
+series launches. Pass an id, or set `defaultSeries` once.
+
+Series built in today:
+
+| Network | id | Asset | Matures (UTC) |
+| --- | --- | --- | --- |
+| Mainnet | `mainnet-blend-2` | USDC | 2026-10-26 23:12 (matured, exits only) |
+| Mainnet | `mainnet-blend-1` | USDC | 2026-09-30 23:09 (matured, exits only) |
+| Testnet | `testnet-blend-3` | USDC | 2026-12-17 |
+| Testnet | `testnet-ustry-2` | USTRY | 2026-11-28 |
+| Testnet | `testnet-blend-2` | USDC | 2026-11-22 (matured) |
+| Testnet | `testnet-blend-1` | USDC | 2026-09-29 (matured) |
+
+Matured series stay in the list on purpose. Holders still redeem and claim through them.
+
+### New series without an SDK upgrade
+
+Spield hosts a **signed series list** per network:
+
+- `https://www.spield.live/sdk/mainnet-series.json`
+- `https://www.spield.live/sdk/testnet-series.json`
+
+A client downloads its network's list when it is created. `await spield.loadSeries()` once at startup so a
+brand-new series is included before you list or pick one.
+
+- The list is **ed25519-signed**. The SDK checks the signature against keys pinned in the package, and testnet and mainnet use separate keys.
+- It **only adds** series. A series id never changes once published, and an entry whose id the SDK already knows is kept as it was.
+- If the list is unreachable or the signature fails, the built-in series stay in use and nothing breaks. `loadSeries()` never throws. It resolves to `{ state: 'loaded' | 'failed', added, skipped, error? }`.
+- Pass `registry: false` to turn it off (server-side rendering or tests), or `{ url, publicKey }` to point it elsewhere. Long-running processes can call `loadSeries({ refresh: true })`.
+
+## Read markets and positions
+
+Reads need no signer.
+
+```ts
+const info = await series.getInfo();
+info.impliedApyPct;      // fixed APY a PT buyer locks in now. null with no liquidity or after maturity
+info.ptPrice;            // price of 1 PT in the series asset
+info.liquidity.formatted;
+info.tvl.formatted;
+info.depositCap;         // TokenAmount, or null when uncapped
+info.depositHeadroom;
+info.fixedRateVaultPct;  // Blend only: the vault's rate for a new receipt
+info.paused;
+info.actions;            // buyPt, sellPt, buyYt, sellYt, redeem, claimYield, fixedRateDeposit
+info.warnings;           // plain-English reasons when something is unavailable
+
+const pos = await series.getPosition({ owner: 'G...' });   // owner defaults to the signer
+pos.assetBalance.formatted;    // USDC (or USTRY) in the wallet
+pos.pt.formatted;
+pos.yt.formatted;
+pos.claimableYield.formatted;
+pos.redeemable.formatted;
+pos.estimatedValue.formatted;
+pos.fixedRateReceipts;         // Blend only
+```
+
+Drive your UI from `info.actions` and `info.warnings`. A closed flag means the call would be refused, and
+`warnings` says why (matured, pool empty, cap reached, NAV stale, vault out of capacity).
+
+Across series:
+
+```ts
+const portfolio = await spield.getPortfolio({ owner: 'G...' });  // every non-empty position, live and matured
+portfolio.totals.USDC?.formatted;      // per asset: USDC and USTRY are never added together
+portfolio.errors;                      // a series that could not be read does not hide the rest
+
+const { series: all, errors } = await spield.getAllInfo({ status: 'live' });
+```
+
+On a USTRY series, `await series.getNav()` returns `{ priceUsd, updatedAt, fresh, maxAgeSeconds }`.
+
+## Lock a fixed rate: buy PT
+
+Buying PT below face locks in a fixed rate. The market sets the price.
+
+```ts
+import { SpieldClient, SpieldSdkError } from '@spield/sdk';
+import { pickWallet, restoreWallet } from '@spield/sdk/wallets';
+
+const wallet = (await restoreWallet()) ?? (await pickWallet());
+const spield = new SpieldClient({ signer: wallet ?? undefined });
+await spield.loadSeries();
+const series = spield.series('testnet-blend-3');
+
+const quote = await series.quoteBuyPt({ amount: '2' });        // 2 USDC
+quote.ptOut.formatted;             // PT you would receive
+quote.payoutAtMaturity.formatted;  // what the PT pays if held to maturity
+quote.fixedApyPct;                 // the rate this purchase locks in, after price impact
+
+const result = await series.buyPt({ amount: '2', slippageBps: 50 });
+console.log(result.hash, result.explorerUrl);
+```
+
+Slippage defaults to 100 bps (1%). Pass `minPtOut` to set the floor yourself. If the wallet has no PT
+trustline, `buyPt` adds it first. That is one more signature and one more entry in `result.steps`. Call
+`series.ensureTrustlines()` during onboarding to keep it out of the buy flow.
+
+**The simplest fixed rate** is the Fixed-Rate Vault on Blend series: deposit USDC and get a receipt
+with a payout set at deposit. No PT and no trustline.
+
+```ts
+const q = await blend.fixedRate.quote({ amount: '2' });        // { amountIn, payout, ratePct }
+await blend.fixedRate.deposit({ amount: '2' });
+// after maturity: redeem each receipt whose `redeemable` is true
+for (const r of (await blend.getPosition()).fixedRateReceipts) {
+  if (r.redeemable) await blend.fixedRate.redeem({ receiptId: r.receiptId });
+}
+```
+
+**Other trades** follow the same quote-then-do shape:
+
+| Goal | Quote | Do it |
+| --- | --- | --- |
+| Exit a fixed rate early | `quoteSellPt({ pt })` | `sellPt({ pt })` |
+| Go long yield | `quoteBuyYt({ yt })` | `buyYt({ yt })` |
+| Exit a yield position | `quoteSellYt({ yt })` | `sellYt({ yt })` |
+
+On a Blend series, `buyYt` and `sellYt` take **two signatures** (a `wrap` then a `buy`, or a `sell` then an
+`unwrap`). `onProgress(step, index, total)` reports each one. If the second step fails you get a
+`SpieldPartialActionError` naming the step that already confirmed. Read `getPosition()` before retrying.
+
+## Redeem and claim
+
+```ts
+const pos = await series.getPosition();
+
+if (pos.redeemable.raw > 0n) await series.redeem();           // every PT back to the asset, after maturity
+if (pos.claimableYield.raw > 0n) await series.claimYield();   // accrued YT yield
+```
+
+After maturity PT alone redeems. `redeem({ pt: '25' })` redeems part. Before maturity, `redeem` also works if
+you hold an equal amount of YT (PT plus YT is the underlying).
+
+To settle everything for a wallet in one call (redeem PT, claim yield, redeem vault receipts across every matured series):
+
+```ts
+const { steps, stoppedBy } = await spield.redeemMatured({
+  onProgress: ({ seriesId, action, step, index, total }) => console.log(seriesId, action, `${step} ${index}/${total}`),
+});
+for (const s of steps) {
+  console.log(s.seriesId, s.action, s.ok ? s.result?.explorerUrl : s.reason);
+}
+```
+
+One failing item does not stop the others. A wallet problem (the user declined, the wrong network) stops the run
+and is reported in `stoppedBy`. With nothing matured, `steps` is empty, so it is safe to run on a schedule.
+
+<Callout type="info" title="USTRY has a finalize step">
+  A USTRY series freezes its PT and YT split once after maturity. If nobody has done it yet, the first
+  `redeem()` runs it as an extra transaction, and sometimes a `sync` first (up to three signatures).
+  Redeeming and claiming never read the NAV feed, so a stale feed cannot block them. A matured series
+  reports `not_finalized` until a post-maturity NAV sample exists or the grace period ends.
+</Callout>
+
+## Preview before you sign
+
+`getInfo().actions` is about the series. `preview()` checks the **wallet** too (balance, holdings,
+trustlines) and simulates the first transaction, then stops where a wallet would be asked to sign.
+
+```ts
+const p = await series.preview('buyPt', { amount: '2' });
+// { ok: true, steps: ['trustline', 'buy'], signatures: 2, simulated: false }
+// { ok: false, reason: 'insufficient_balance', message: 'Cannot buy PT: ...' }
+
+const forAnyone = await series.preview('redeem', undefined, { owner: 'G...' }); // no signer needed
+```
+
+Every action can be previewed: `buyPt`, `sellPt`, `buyYt`, `sellYt`, `redeem`, `claimYield`, and on Blend
+series `fixedRate.deposit` and `fixedRate.redeem`.
+
+## Wallets and signers
+
+In a browser, `@spield/sdk/wallets` connects the wallet the user already has.
+
+```ts
+import { connectWallet, listWallets, pickWallet, restoreWallet } from '@spield/sdk/wallets';
+import { mainnet } from '@spield/sdk';
+
+const network = mainnet();
+// On page load: last time's wallet, no prompt. On a button click: a picker dialog.
+const wallet = (await restoreWallet({ network })) ?? (await pickWallet({ network }));
+
+const options = await listWallets();         // [{ id, name, installed, installUrl, webBased }, ...]
+const xbull = await connectWallet('xbull', { network });   // build your own picker
+```
+
+| Call | What it does |
+| --- | --- |
+| `pickWallet({ network?, title?, theme?, remember? })` | A ready-made picker dialog. Resolves to a connected wallet, or `null` if closed. |
+| `connectWallet(id, { network? })` | Connect one wallet: `'freighter'`, `'xbull'`, `'lobstr'`, `'albedo'`, `'rabet'`, `'hana'`. |
+| `restoreWallet({ network? })` | The previous wallet without a prompt, or `null`. |
+| `listWallets()` | Every supported wallet and whether this browser has it. |
+
+Pass the same `network` to every wallet call. A wallet left on the wrong network is refused at connect, and
+every signature is checked against the connected account and network before it is submitted. The result is
+a signer: `new SpieldClient({ signer: wallet })`.
+
+Other signers from the root import: `new KeypairSigner(secret)` for scripts and backends (never ship a funded
+secret to a browser), `new ManualSigner(address, signFn)` for any other wallet, and
+`new FreighterSigner(freighterApi)`. A signer is anything with `getAddress()` and
+`signTransaction(xdr, { networkPassphrase, address })`.
+
+## Advanced: per-contract clients
+
+`@spield/sdk/advanced` mirrors the contracts one to one. Use it for what the series API does not cover:
+minting PT and YT directly, providing or removing liquidity, keep-alives, and protocol health. Amounts here are in
+contract units (SR shares, not USDC), and there are no automatic trustlines.
+
+```ts
+import { KeypairSigner, TESTNET_SERIES, testnet, type BlendSeriesConfig } from '@spield/sdk';
+import {
+  DEFAULT_SIMULATION_SOURCE, SorobanClient, SrMarketClient, SrProtocolClient, blendDeployment,
+} from '@spield/sdk/advanced';
+
+const signer = new KeypairSigner(process.env.SPIELD_SECRET!);
+const config = TESTNET_SERIES.find((s): s is BlendSeriesConfig => s.id === 'testnet-blend-3')!;
+
+const deployment = blendDeployment(testnet(), config);
+const soroban = new SorobanClient({ network: deployment, signer, simulationSource: DEFAULT_SIMULATION_SOURCE });
+const market = new SrMarketClient(deployment, soroban, signer);
+
+const { shares } = await market.getLpPosition({ owner: await signer.getAddress() });
+await market.removeLiquidity({ shares: shares.raw, minPtOut: 0n, minSrOut: 0n });
+```
+
+The module also exports `StandardizedReturnClient`, `YieldEngineClient`, `SrVaultClient`, `SrRouterClient`,
+`SrTokensClient`, `BlendStrategyClient`, `SrProtocolClient` (health and solvency in one call), and for USTRY
+`UstrySeriesClient` and `UstryMarketClient`. Liquidity providers on a matured mainnet series withdraw through
+`SrMarketClient.removeLiquidity`.
+
+## Error handling
+
+Every error has a plain-English `message` for people and a `reason` for code.
+
+```ts
+import { SpieldSdkError } from '@spield/sdk';
+
+try {
+  await series.buyPt({ amount });
+} catch (error) {
+  if (!(error instanceof SpieldSdkError)) throw error;
+  switch (error.reason) {
+    case 'insufficient_balance': return showAddFunds();
+    case 'no_liquidity':         return showTryASmallerAmount();
+    case 'wallet_rejected':      return;                  // the user cancelled: stay quiet
+    default:
+      if (error.retryable) return retryLater();
+      showError(error.message);
+  }
+}
+```
+
+Common reasons:
+
+| `reason` | Meaning |
+| --- | --- |
+| `invalid_input` | A malformed amount, address, slippage or argument. |
+| `insufficient_balance` | The wallet lacks the asset, PT or YT the action spends. |
+| `nothing_to_redeem` / `nothing_to_claim` | No PT to redeem, or no yield accrued. |
+| `no_liquidity` / `slippage` | The pool cannot fill that size, or the price moved past the limit. |
+| `series_matured` | Trading is closed. Redeem and claim instead. |
+| `cap_reached` / `paused` | A deposit cap is full, or a contract is not accepting this now. |
+| `nav_stale` / `not_finalized` | USTRY: the NAV is too old to mint, or the series has matured but is not finalized. |
+| `vault_unavailable` | The Fixed-Rate Vault is not taking deposits. |
+| `wallet_rejected` / `wallet_error` / `no_signer` | The user declined, the wallet failed, or no signer is configured. |
+| `wrong_network` / `wrong_account` / `wallet_not_installed` | The wallet is on another network or account, or missing. |
+| `trustline_missing` / `unfunded_account` | A needed trustline is missing, or the account does not exist on chain yet. |
+| `rpc_unavailable` / `rpc_timeout` / `timing_race` | Retryable network failures. Run it again. |
+| `unconfirmed` | Submitted, but the outcome is unknown. Check the explorer before resubmitting. |
+| `contract_reverted` | Any other contract failure. `contractCode` carries the contract's own error number. |
+| `partial_action` | A multi-step action stopped after an earlier step confirmed. |
+
+`error.retryable` is true when running the same action again may succeed. Contract reverts arrive
+translated, so `Error(Contract, #107)` reads "The deposit would exceed the SR deposit cap. Check the remaining
+headroom." The classes `SpieldValidationError`, `SpieldSignerError`, `SpieldContractError`, `SpieldRpcError`,
+`SpieldConfigurationError` and `SpieldPartialActionError` all extend `SpieldSdkError`.
+
+## Amounts
+
+Strings and numbers are **human amounts** (`'10.5'`). **A `bigint` is already in base units**, so
+`amount: 100n` means 0.00001, not 100. Every Spield token has 7 decimals. Results are `TokenAmount`:
+`{ raw: 105000000n, formatted: '10.5', decimals: 7, symbol: 'USDC' }`. Show `formatted`, compute with `raw`.
+
+```ts
+import { fromBaseUnits, toBaseUnits } from '@spield/sdk';
+toBaseUnits('10.25');      // 102500000n
+fromBaseUnits(102500000n); // "10.25"
+```
+
+Pass strings for anything you compute or read from user input, because floating point can produce more
+than 7 decimals. Rates, prices and APYs come back as plain numbers (`impliedApyPct: 4.8` means 4.8%).
+
+## Mainnet notes
+
+- **Both mainnet series have matured**, so today the SDK serves exits on mainnet: `redeem`, `claimYield`, `fixedRate.redeem`, `redeemMatured` and `getPortfolio`. Trading works on a new series as soon as the hosted list adds one.
+- **Fees follow the network.** Writes offer the 90th percentile of recent inclusion fees, capped at 0.1 XLM (`inclusionFee: 'auto'`, `maxInclusionFee`). Pass `inclusionFee: 2000` to fix it.
+- **No faucets.** An account needs XLM for the base reserve and fees, plus 0.5 XLM per trustline.
+- **Both mainnet PTs use the code `SPLDPT`** under different issuers. Compare `code:issuer`, never the code alone.
+- **Testnet funds.** XLM from Friendbot (`https://friendbot.stellar.org/?addr=G...`). USDC for Blend series is Blend's test USDC (`USDC:GATALTGTWIOT6BUDBCZM3Q4OQ4BO2COLOAZ7IYSKPLC2PMSOPPGF5V56`), from the faucet in Blend's testnet app. Circle's testnet USDC does not work with them.
+
+Next: the [Contracts reference](/docs/developers/contracts) for the calls underneath, and
+[Contract addresses](/docs/developers/addresses) for each series.

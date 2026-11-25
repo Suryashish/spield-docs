@@ -3,6 +3,7 @@
   "icon": "SquareCode",
   "pages": [
     "index",
+    "sdk",
     "architecture",
     "contracts",
     "tokens",
