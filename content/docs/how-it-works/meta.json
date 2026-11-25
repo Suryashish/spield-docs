@@ -1,5 +1,14 @@
 {
   "title": "How It Works",
   "icon": "Layers",
-  "pages": ["index", "pt-and-yt", "yield-source", "solvency", "lifecycle"]
+  "pages": [
+    "index",
+    "pt-and-yt",
+    "standardized-return",
+    "yield-source",
+    "treasury-series",
+    "solvency",
+    "lifecycle",
+    "series-and-maturities"
+  ]
 }

@@ -29,7 +29,7 @@ const siteUrl =
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${appName} — ${appTagline}`,
+    default: `${appName}: ${appTagline}`,
     template: `%s · ${appName} Docs`,
   },
   description:
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     'fixed rate',
   ],
   openGraph: {
-    title: `${appName} — ${appTagline}`,
+    title: `${appName}: ${appTagline}`,
     description:
       'Fixed-rate bonds and tradable yield on Stellar, backed by real on-chain yield.',
     siteName: `${appName} Documentation`,
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${appName} — ${appTagline}`,
+    title: `${appName}: ${appTagline}`,
     description:
       'Fixed-rate bonds and tradable yield on Stellar, backed by real on-chain yield.',
   },

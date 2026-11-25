@@ -5,4 +5,4 @@ export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
 
 /** The live application (dashboard) the docs link out to. */
-export const appUrl = 'https:///';
+export const appUrl = 'https://app.spield.live/';

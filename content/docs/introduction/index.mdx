@@ -1,57 +1,85 @@
 ---
 title: What is Spield?
-description: Spield is a fixed-income protocol on Stellar that splits real, on-chain yield into a fixed-rate bond and a tradable yield token.
+description: Spield is the fixed-income layer for Stellar. It splits real, on-chain yield into a fixed-rate bond (PT) and a tradable yield token (YT), built to the Pendle V2 architecture.
 icon: Sparkles
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 
-**Spield is the fixed-income layer for Stellar.** It takes a yield-bearing position —
-USDC earning interest on Stellar's lending market — and splits it into two simple,
+**Spield is the fixed-income layer for Stellar.** It takes a yield-bearing position,
+such as USDC earning interest on Stellar's lending market, and splits it into two simple,
 tradable pieces:
 
-- a **Principal Token (PT)** — a *fixed-rate bond*. It redeems **1:1 for your principal at a set date**, and you buy it today at a small discount. That discount *is* your fixed return.
-- a **Yield Token (YT)** — a *claim on all the yield* that position earns until that date. It's a cheaper, leveraged way to bet that yield will be high.
+- a **Principal Token (PT)**, a *fixed-rate bond*. It redeems **1:1 for your principal at a set date**, and you buy it today at a small discount. That discount *is* your fixed return.
+- a **Yield Token (YT)**, a *claim on all the yield* that position earns until that date. It is a cheaper, leveraged way to bet that yield will be high.
 
-Together, PT and YT always add up to the original position. Nothing is invented; the
-value is just **separated** so each person can hold exactly the risk they want.
+Together, PT and YT always add up to the original position. Nothing is invented. The
+value is **separated** so each person can hold exactly the risk they want.
 
 <Callout title="One line to remember">
-  Deposit USDC → get a **fixed-rate bond (PT)** + a **yield token (YT)**. Hold PT for a
-  guaranteed return, hold YT for leveraged yield, or trade either on the market.
+  Deposit USDC, get a **fixed-rate bond (PT)** and a **yield token (YT)**. Hold PT for a
+  known return, hold YT for leveraged yield, or trade either on the market.
 </Callout>
+
+## Built to the Pendle V2 architecture
+
+Spield follows the design of Pendle V2, adapted to Stellar and its Soroban smart contracts.
+Each piece has a direct counterpart:
+
+| Spield | Role | Pendle V2 counterpart |
+| --- | --- | --- |
+| **SR** (Standardized Return) | A yield-bearing share token over the yield source. Everything above it speaks only SR. | SY (EIP-5115) |
+| **PT** | The fixed-rate bond. A classic Stellar asset. | PT |
+| **YT** | The yield claim. The yield contract itself is the YT token. | YT |
+| **PT/SR market** | The AMM where PT trades against SR, with a fee that scales with time to maturity. | PendleMarket |
+
+Each maturity is its own **series**: a separate set of six contracts with an expiry that is
+set once and never changes. See [Series and maturities](/docs/how-it-works/series-and-maturities)
+and [Standardized Return (SR)](/docs/how-it-works/standardized-return).
+
+## Live on mainnet, with two yield sources
+
+Spield has been live on Stellar mainnet since September 2026. Both mainnet series so far
+(Series 1 and Series 2) have matured and are redeem-only. New series are announced in the app.
+
+| Yield source | What it is | Where it runs |
+| --- | --- | --- |
+| **Blend USDC** | Interest paid by borrowers on Blend, Stellar's main lending market. | Mainnet and testnet |
+| **Etherfuse USTRY** | Tokenized US Treasuries, priced by a NAV feed. | Testnet today, mainnet planned |
+
+See [The yield source](/docs/how-it-works/yield-source) and [Treasury series (USTRY)](/docs/how-it-works/treasury-series).
 
 ## The problem Spield solves
 
 Almost all on-chain yield is **variable**. You supply USDC to a lending market and
-earn… whatever the rate happens to be, day to day. That's fine for some people, but it
+earn whatever the rate happens to be, day to day. That is fine for some people, but it
 makes two very normal things impossible:
 
-1. **Locking in a known return.** A saver who wants "5% for 90 days, guaranteed" can't
-   get it — the rate floats.
+1. **Locking in a known return.** A saver who wants "5% for 90 days, fixed" cannot
+   get it, because the rate floats.
 2. **Expressing a view on yield itself.** A trader who thinks rates will *rise* has no
    clean instrument to express that.
 
-Traditional finance solved this a long time ago with **bonds** (fixed return) and
+Traditional finance solved this long ago with **bonds** (fixed return) and
 **interest-rate products** (a view on rates). Spield brings the same two primitives
-on-chain, in a form that's transparent and verifiable.
+on-chain, in a form that is transparent and verifiable.
 
 ## How Spield does it
 
-Spield doesn't *create* yield — it **sources** real yield and then **restructures** it.
+Spield does not *create* yield. It **sources** real yield and then **restructures** it.
 
 <div className="fd-steps">
 
 ### Real yield in
 
-Your USDC is supplied to **Blend**, Stellar's main lending market. The position earns
-interest that accrues **on-chain**, second by second. (More in [The Yield Source](/docs/how-it-works/yield-source).)
+Your USDC is supplied to **Blend**. The position earns interest that accrues **on-chain**,
+and the SR token tracks its value. (More in [The yield source](/docs/how-it-works/yield-source).)
 
-### Split into PT + YT
+### Split into PT and YT
 
 The protocol "strips" that position into a fixed leg (PT) and a variable leg (YT). This
-is called **yield stripping**, and it's the same model used by the largest fixed-income
+is called **yield stripping**, and it is the model behind the largest fixed-income
 protocols in DeFi.
 
 ### Choose your exposure
@@ -64,26 +92,31 @@ to earn fees, or **trade** PT and YT on the market as your view changes.
 ## What makes Spield different
 
 <Cards>
-  <Card title="Backed by real yield" description="The value behind your tokens grows from actual on-chain lending interest — not an off-chain number someone has to keep updating." />
-  <Card title="Solvent by construction" description="Because the backing is a live on-chain position, the protocol can always pay every PT holder their principal and every YT holder their yield." />
-  <Card title="Stellar-native" description="No bridges, no relayers, no wrapped assets in the core. Everything settles on one fast, low-fee chain." />
-  <Card title="A real trading venue" description="A purpose-built time-decay market prices PT and YT correctly as they approach maturity — not a placeholder order book." />
+  <Card title="Backed by real yield" description="The value behind your tokens grows from actual on-chain lending interest, not an off-chain number someone has to keep updating." />
+  <Card title="Solvency you can check" description="The engine holds enough SR to redeem every PT at par and pay every credited yield claim. That invariant is asserted on every state change and readable by anyone." />
+  <Card title="Stellar-native" description="The core protocol has no bridges, relayers, or wrapped assets. Everything settles on one fast, low-fee chain." />
+  <Card title="A purpose-built market" description="A time-decay PT/SR AMM prices PT and YT as they approach maturity, and the SR side of the pool keeps earning yield while it sits there." />
 </Cards>
 
 ## Who Spield is for
 
-| You are… | Spield gives you… |
+| You are... | Spield gives you... |
 | --- | --- |
-| A **saver** who wants predictability | A fixed return locked in at deposit (PT / the Fixed-Rate Vault). |
+| A **saver** who wants predictability | A fixed return locked in at deposit (PT, or the Fixed-Rate Vault). |
 | A **yield trader** with a view on rates | Cheap, leveraged exposure to yield (YT). |
-| A **liquidity provider** | Swap fees with near-zero impermanent loss if you hold to maturity. |
-| A **builder** | Open, composable tokens and contracts to build fixed-income products on. |
+| A **liquidity provider** | Swap fees, plus the yield on the SR half of the pool, with little impermanent loss if you hold to maturity. |
+| A **builder** | Open contracts, a typed [SDK](/docs/developers/sdk), and composable tokens to build fixed-income products on. |
+
+<Callout type="warn" title="Know the risks">
+  Spield is young software on a young chain. Launch deposit caps are small by design.
+  Read [Understanding the risks](/docs/resources/security) before you deposit.
+</Callout>
 
 ## Keep reading
 
 <Cards>
   <Card title="Why Stellar?" href="/docs/introduction/why-stellar" description="Why a fixed-income protocol belongs on Stellar specifically." />
-  <Card title="Core concepts" href="/docs/introduction/core-concepts" description="PT, YT, maturity, par, implied APY — defined simply." />
+  <Card title="Core concepts" href="/docs/introduction/core-concepts" description="SR, PT, YT, series, maturity, implied and fixed rate, and fees, defined simply." />
   <Card title="Key benefits" href="/docs/introduction/key-benefits" description="The concrete advantages, summarized." />
   <Card title="How it works" href="/docs/how-it-works" description="A deeper, still-plain walkthrough of the machinery." />
 </Cards>

@@ -1,6 +1,6 @@
 ---
 title: Earn a fixed yield
-description: Step-by-step — lock a guaranteed return on Spield, the easy way (Fixed-Rate Vault) or the hands-on way (buy PT).
+description: Step-by-step. Lock a fixed return on Spield, the easy way (Fixed-Rate Vault) or the hands-on way (buy PT).
 icon: Lock
 ---
 
@@ -10,13 +10,17 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 Locking a fixed return is Spield's core promise. There are two ways to do it: the **easy
 way** (the Fixed-Rate Vault) and the **hands-on way** (buy PT directly). Both lock a known
-return; pick based on how much control you want.
+return. Pick based on how much control you want.
+
+Both start the same way: connect a wallet, then choose an **open series** in the header's
+**Series / maturity** menu. (A series that shows **Ended** only supports redemption. See
+[Redeem at maturity](/docs/guides/redeem-at-maturity).)
 
 <Tabs items={['Easy: Fixed-Rate Vault', 'Hands-on: buy PT']}>
 
 <Tab value="Easy: Fixed-Rate Vault">
 
-The vault hides all the machinery. Deposit USDC, get a receipt for a guaranteed payout.
+The vault hides all the machinery. Deposit USDC, get a receipt for a fixed payout.
 
 <Steps>
 
@@ -29,72 +33,93 @@ In the app sidebar, select **Fixed Vault**.
 <Step>
 ### Enter your amount
 
-Type the USDC you want to deposit. You'll see your **guaranteed payout at maturity** and the
-**fixed APY** you're locking.
+Type the USDC you want to deposit. The **Fixed payout at maturity** box shows your total
+payout and the **fixed coupon** on top of principal. Below it you see the **Locked APR** and the
+**Matures** date.
 </Step>
 
 <Step>
-### Deposit
+### Lock the rate
 
-Click **Deposit** and approve in your wallet. Your first deposit may include a one-time
-trustline approval — that's normal.
+Click **Lock Fixed Rate** and approve in your wallet. It is one signature, and the vault needs
+no PT trustline, because the vault holds the PT itself.
 </Step>
 
 <Step>
 ### Redeem at maturity
 
-After the maturity date, return to the vault and **redeem** your receipt for the full payout
-in USDC.
+After the maturity date, return to the Fixed Vault page and click **Redeem** on your receipt
+under **Your fixed-rate receipts**. You can also pick **Receive on** another chain to be paid out
+there. If the pool cannot pay everything in one go, the button reads **Collect rest**, and
+you can collect the remainder later.
 </Step>
 
 </Steps>
 
-<Callout title="Done — your return is locked">
+<Callout title="Your return is locked">
   From the moment you deposit, your payout is fixed. Nothing the market does afterward changes
-  it.
+  it. The payout is backed by PT the vault holds, and the vault asserts that backing after every
+  deposit.
 </Callout>
+
+If the button reads **Not accepting deposits** or **Exceeds vault capacity**, the vault's spare
+backing (or the series cap) cannot cover a coupon of that size. Try a smaller amount, or pick
+another series. See the [FAQ](/docs/faq).
 
 </Tab>
 
 <Tab value="Hands-on: buy PT">
 
-Buying PT yourself lets you hold the bond directly (and trade it later if you want).
+Buying PT yourself lets you hold the bond directly, and sell it later if you want.
 
 <Steps>
 
 <Step>
-### Open the Markets page
+### Open Markets and choose PT, then Buy
 
-Select **Markets** and make sure you're on the **Earn Fixed** tab.
+Select **Markets**. Under **Asset** choose **PT**, and under **Direction** choose **Buy PT**
+(its sub-label reads "Lock a fixed return").
 </Step>
 
 <Step>
-### Check the implied APY
+### Check the implied rate
 
-The headline **implied APY** is the fixed return you'd lock by buying PT now and holding to
+The market's **implied APY** is the fixed return you would lock by buying PT now and holding to
 maturity. If you like it, continue.
 </Step>
 
 <Step>
-### Enter an amount and review the quote
+### Pick how you pay, and enter an amount
 
-Enter how much USDC to spend. The app shows how much PT you'll receive and your effective
-fixed rate. Set a **slippage tolerance** if you wish.
+The **Pay with** menu lets you pay in **USDC** (default), in **SR** if you already hold it, or in
+USDC from another chain. Enter the amount. The app shows how much PT you will receive. You can set
+a **Max slippage** (0.1%, 0.5%, 1%, 3%, or 5%, with 1% as the default).
+
+Paying with USDC is **one signature**: the app wraps USDC into SR and buys PT in the same
+transaction. Paying with SR is also one signature and skips the Blend step. See
+[Trade with SR](/docs/guides/trade-with-sr).
 </Step>
 
 <Step>
-### Buy and hold
+### Enable PT, then buy
 
-Confirm the swap and approve in your wallet. You now hold PT. Hold it to maturity, then
-**redeem** it 1:1 for USDC on the Markets/Positions area.
+The first time you buy PT in a series the button reads **Add the PT trustline first**. Click it
+once, approve, and then click **Buy PT with USDC**. You now hold PT.
+</Step>
+
+<Step>
+### Hold, then redeem
+
+Hold PT to maturity, then redeem it **1:1 for USDC**. On the **Deposit** page, switch to
+**Redeem** and use **Redeem at par**. Full steps are in [Redeem at maturity](/docs/guides/redeem-at-maturity).
 </Step>
 
 </Steps>
 
 <Callout type="info" title="Exiting early">
-  Want out before maturity? Sell your PT back on the market at the current price, or if you
-  also hold matching YT, recombine them to USDC. Either way you take the *current* price, not
-  the locked one.
+  Want out before maturity? Choose **Sell PT** on Markets and take the current price, or if you
+  also hold matching YT, use **Combine** on the Deposit page to turn equal PT and YT back into USDC
+  at par. Either way you take the *current* price, not the locked one.
 </Callout>
 
 </Tab>
@@ -103,16 +128,20 @@ Confirm the swap and approve in your wallet. You now hold PT. Hold it to maturit
 
 ## How your return is calculated
 
-Your fixed return comes from the **discount**: you acquire principal-worth-1.00 for less than
-1.00 today, and it's worth exactly 1.00 at maturity.
+Your fixed return comes from the **discount**: you acquire principal worth 1.00 for less than
+1.00 today, and it is worth exactly 1.00 at maturity.
 
-> Example: buy PT at **0.97** with **90 days** to maturity. At maturity it's worth **1.00**.
-> That's a **~3.1% return over 90 days** (≈ 12.5% annualized) — locked in now.
+> Example: buy PT at **0.97** with **90 days** to maturity. At maturity it is worth **1.00**.
+> That is about **3.1% over 90 days** (roughly 12.5% annualized), locked in now.
+
+The Fixed-Rate Vault quotes the same idea as a payout: principal plus a coupon at the
+vault's rate for the time left.
 
 ## What can go wrong?
 
 - **You sell early at a loss.** Before maturity, PT's price moves with rates. If you sell early when rates have risen, you might get less than you paid. Held to maturity, you get par.
-- **Yield-source risk.** Spield's backing depends on the underlying lending market; see [risks](/docs/resources/security).
+- **Yield-source risk.** Spield's backing depends on the underlying lending market. If that market lost principal, redemptions share the loss. See [risks](/docs/resources/security).
+- **A series that is full or matured.** Each series has a launch cap and a fixed expiry. See the [FAQ](/docs/faq).
 
-That's it — the simplest, lowest-risk way to use Spield. Next, the opposite bet:
+That is it: the simplest, lowest-risk way to use Spield. Next, the opposite bet:
 [go long on yield](/docs/guides/long-yield).

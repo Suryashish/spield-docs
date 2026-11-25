@@ -1,95 +1,155 @@
 ---
 title: Events
-description: The on-chain events Spield emits — enough to reconstruct full protocol state for dashboards, indexers, and analytics.
+description: The on-chain events Spield's v2 contracts emit, with topics and fields, and how to read them for dashboards and indexers.
 icon: Radio
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Every economic state change in Spield emits an **event**. Together they're enough to
-reconstruct the full state of the protocol off-chain — for a dashboard, an indexer, an
-activity feed, or analytics.
+Spield's contracts emit Soroban contract events. An indexer can rebuild a series' full activity from
+them. They are also what the app's activity feed reads.
 
-## Engine events
+## How events are shaped
 
-| Event | Emitted when | Carries |
+- **`topic[0]` is the event name in snake_case.** `SrDeposit` is published as `sr_deposit`, `MintPy` as `mint_py`.
+- Fields marked as topics in the tables below follow `topic[0]` in order (usually the acting address).
+- The remaining fields are the event **data**, a map keyed by field name.
+- Router and one SR event use a fixed two-segment prefix instead: `["router", "<name>", user]` and `["sr", "deposit_cap"]`.
+- Amounts are `i128` base units (7 decimals). Rates are 12-decimal fixed point.
+
+Events are per series: each series' contracts emit their own. Filter by the contract addresses of the
+series you care about.
+
+## SR
+
+| Event (`topic[0]`) | Topics | Data |
 | --- | --- | --- |
-| `mint` | A deposit mints PT + YT | owner, position id, amount, entry rate |
-| `claim` | Yield is claimed | owner, position id, amount paid, current rate |
-| `redeem_pt` | PT is redeemed at maturity | owner, position id, amount |
-| `combine` | PT + YT recombined to USDC | owner, position id, amount |
-| `transfer` | A position changes owner | from, to, position id |
-| `paused` | Inflows paused/unpaused | new state |
+| `sr_deposit` | `from`, `receiver` | `underlying_in`, `shares_out`, `rate` |
+| `sr_redeem` | `from`, `receiver` | `shares_in`, `underlying_out` |
+| `transfer` | `from`, `to` | `amount` |
+| `rate_clamped` | none | `live`, `high_water`. The live rate came back below the high-water mark. Rare, worth alerting on. |
+| `["sr", "deposit_cap"]` | none | `cap` |
 
-## Vault events
+## Yield (PT and YT engine)
 
-| Event | Emitted when | Carries |
+| Event | Topics | Data |
 | --- | --- | --- |
-| `deposit` | A fixed-rate deposit | user, receipt id, principal, payout, rate |
-| `redeem` | A receipt is redeemed | owner, receipt id, amount paid |
-| `seed` | Coupon capacity added | from, amount |
-| `harvest` | Retained yield reinvested | yield claimed, PT added |
-| `rate_set` | Quoted rate changed | new rate |
+| `initialized` | `sr`, `pt` | `expiry`, `yield_fee_bps`, `index` |
+| `mint_py` | `from`, `receiver` | `sr_in`, `py_out`, `index` |
+| `redeem_py` | `from`, `receiver` | `py_in`, `sr_out`, `index` |
+| `interest_paid` | `user` | `net_to_user`, `fee_to_treasury`, `index` |
+| `yt_transfer` | `from`, `to` | `amount` |
+| `yt_burn` | `from` | `amount` |
+| `expiry_stamped` | none | `index`. The index was pinned at expiry. After this YT accrues nothing. |
+| `surplus_swept` | none | `sr_amount` |
+| `yield_fee_set` | none | `bps` |
 
-## Market events
+## SR Market
 
-| Event | Emitted when | Carries |
+Fee events carry **both halves** of the split, so protocol revenue and LP earnings can be rebuilt from the log alone.
+
+| Event | Topics | Data |
 | --- | --- | --- |
-| `add_liquidity` | Liquidity added | lp, pt in, usdc in, shares minted |
-| `remove_liquidity` | Liquidity removed | lp, shares, pt out, usdc out |
-| `swap` | A trade executes | trader, direction, amount in, amount out |
-| `fee_set` | Swap fee changed | new fee |
+| `initialized` | `yield_contract`, `pt` | `sr`, `expiry`, `scalar_root`, `ln_fee_root`, `ln_implied_rate` |
+| `add_liquidity` | `lp` | `pt_in`, `sr_in`, `shares_minted` |
+| `remove_liquidity` | `lp` | `shares_burned`, `pt_out`, `sr_out` |
+| `swap` | `trader` | `pt_in` (bool: `true` is PT to SR), `amount_in`, `amount_out`, `fee_sr`, `fee_to_treasury` |
+| `yt_trade` | `user` | `is_buy`, `yt_amount`, `sr_amount`, `fee_sr`, `fee_to_treasury` |
+| `fee_root_set` | none | `ln_fee_root` |
+| `treasury_share_set` | none | `bps` |
 
-## Governance & lifecycle events
+`fee_sr - fee_to_treasury` is what stayed with LPs.
 
-Each contract also emits an `initialized` event and governance events (admin proposal/accept,
-upgrade schedule/apply/cancel) — useful for monitoring the protocol's administrative state.
+## Fixed-Rate Vault
+
+| Event | Topics | Data |
+| --- | --- | --- |
+| `initialized` | `yield_contract`, `pt` | `sr`, `maturity`, `rate_bps` |
+| `seeded` | `from` | `usdc_in`, `py_minted` |
+| `deposited` | `user` | `receipt_id`, `principal`, `payout`, `rate_bps` |
+| `redeemed` | `owner` | `receipt_id`, `paid` |
+| `redeemed_partial` | `owner` | `receipt_id`, `collected`, `still_owed`. The receipt stays open. |
+| `harvested` | none | `sr_claimed`, `py_minted` |
+| `swept` | `to` | `pt_amount` |
+| `surplus_swept` | `to` | `sr_amount`, `yt_amount`, `usdc_amount` |
+| `rate_set` | none | `rate_bps` |
+| `loss_recognized` | none | `factor`. A lower venue value was observed. Open receipts are scaled by this factor when redeemed. |
+
+## Router
+
+Each router event records the **end-to-end** trade the user asked for (USDC in, PT or YT out), not the SR hop in the middle. The SR and market events for that hop are emitted too.
+
+| Topics | Data |
+| --- | --- |
+| `["router", "buy_pt", user]` | `usdc_in`, `sr_mid`, `pt_out` |
+| `["router", "buy_yt", user]` | `usdc_spent`, `yt_out`, `usdc_refund`, `sr_refund` |
+| `["router", "sell_pt", user]` | `pt_in`, `sr_mid`, `usdc_out` |
+| `["router", "sell_yt", user]` | `yt_in`, `sr_mid`, `usdc_out` |
+| `["router", "redeem", user]` | `py_in`, `sr_mid`, `usdc_out`, `after_expiry` |
+| `["router", "claim", user]` | `sr_net`, `sr_fee`, `usdc_out` |
+
+## Governance events (every contract)
+
+Contracts with admin rotation and upgrades emit the same governance events, so you can monitor admin changes and upgrades:
+
+`admin_proposed`, `admin_changed`, `admin_transfer_cancelled`, `upgrade_scheduled` (`wasm_hash`, `eta`),
+`upgrade_cancelled`, `upgraded` (`wasm_hash`), `timelock_changed` (`secs`).
+
+A scheduled upgrade is public for the whole timelock delay. Watching `upgrade_scheduled` gives you advance notice.
+
+## USTRY series
+
+The USTRY Series contract emits only a few events of its own. **Per-action history lives on the token contracts**, so index those too.
+
+| Contract | Event | Topics | Data |
+| --- | --- | --- | --- |
+| USTRY Series | `finalized` | none | `high_water`, `factor`, `boundary` |
+| USTRY Series | `paused_set` | none | `paused` |
+| USTRY Series | `cap_set` | none | `cap` (receipt cap) |
+| USTRY Series | `split_cap_set` | none | `cap` (split cap) |
+| Claim tokens | `mint` | `series`, `owner` | the amount |
+| Claim tokens | `burn` | `owner` | the amount |
+| Claim tokens | `transfer` | `from`, `to` | the amount (or a map with `amount` and `to_muxed_id`) |
+| Claim tokens | `approve` | `from`, `spender` | `(amount, expiration_ledger)` |
+| USTRY Market | `initialized` | `series`, `pt` | `yt`, `asset`, `expiry`, `scalar_root`, `ln_fee_root`, `ln_implied_rate` |
+| USTRY Market | `add_liquidity` | `lp` | `pt_in`, `asset_in`, `shares_minted` |
+| USTRY Market | `remove_liquidity` | `lp` | `shares_burned`, `pt_out`, `asset_out`, `haircut` |
+| USTRY Market | `swap` | `trader` | `pt_in`, `amount_in`, `amount_out`, `fee_asset`, `fee_to_treasury` |
+| USTRY Market | `yt_trade` | `user` | `is_buy`, `yt_amount`, `asset_amount`, `fee_asset`, `fee_to_treasury` |
+| USTRY Market | `fee_root_set`, `treasury_share_set` | none | `ln_fee_root`, `bps` |
+| USTRY Market | `fee_params_scheduled` | none | `ln_fee_root`, `treasury_fee_share_bps`, `eta` |
+| USTRY Market | `fee_params_cancelled` | none | none |
+| USTRY Market | `skimmed` | `to` | `pt`, `asset`, `yt` |
+
+`haircut` on a `remove_liquidity` event is true when a clawback left the pool with less than its recorded reserves and LPs were paid pro rata.
 
 ## Reading events
-
-Use the Soroban RPC `getEvents` endpoint, filtered by contract id and a starting ledger.
-Event topics are **snake_case** (e.g. `mint`, `redeem_pt`, `add_liquidity`).
 
 ```ts
 import { rpc, scValToNative } from '@stellar/stellar-sdk';
 
-const server = new rpc.Server(RPC_URL);
+const server = new rpc.Server('https://soroban-testnet.stellar.org');
 
-const { events } = await server.getEvents({
-  startLedger,
-  filters: [
-    {
-      type: 'contract',
-      contractIds: [WRAPPER_ID],
-    },
-  ],
+const latest = (await server.getLatestLedger()).sequence;
+const res = await server.getEvents({
+  startLedger: latest - 5000,
+  filters: [{ type: 'contract', contractIds: [YIELD_ID, MARKET_ID, VAULT_ID] }],
+  limit: 200,
 });
 
-for (const e of events) {
-  const topic = scValToNative(e.topic[0]); // e.g. "mint"
-  const data = scValToNative(e.value);     // the event payload
-  // …index into your store
+for (const ev of res.events) {
+  const topics = ev.topic.map((t) => scValToNative(t));   // ['mint_py', 'G...from', 'G...receiver']
+  const data = scValToNative(ev.value);                    // { sr_in, py_out, index } with bigint values
+  console.log(ev.ledger, ev.contractId, topics[0], data);
 }
 ```
 
-<Callout type="warn" title="Mind RPC retention windows">
-  Public RPC nodes only retain recent events (a limited ledger window). For full history,
-  index continuously from launch and persist events yourself, or use an indexing service.
-  When backfilling, query in chunks and fall back to smaller `startLedger` windows if a node
-  returns nothing for a too-old range.
+<Callout type="warn" title="RPC keeps a short history">
+  Soroban RPC retains only a rolling window of recent ledgers (typically about a week), so
+  `getEvents` cannot rebuild a series from scratch. For full history, index from the series' deployment
+  ledger into your own store as you go, or use an indexer that retains contract events. Stellar Expert
+  also exposes full contract history for a quick look.
 </Callout>
 
-## Reconstructing state
-
-A few common derivations:
-
-- **A user's positions** → fold `mint` (creates) + `transfer` (reassigns) + `redeem_pt`/`combine` (drains) events.
-- **Realized yield over time** → the rate fields on `mint`/`claim` events, plus the live `current_rate`, reconstruct a cumulative-yield curve.
-- **Market price history** → reconstruct executed prices from `swap` events (`amount_in` / `amount_out`).
-- **Protocol activity feed** → just stream the events in ledger order.
-
-<Callout title="Everything you need is on-chain">
-  Because every economic change emits an event and every figure is independently readable, you
-  can build a fully self-sufficient dashboard or indexer without any private API. That's the
-  same data the official app uses.
-</Callout>
+Because the series are short-lived and each has its own contracts, a simple pattern is one subscription
+per series: start from its deployment ledger and stop following it a while after maturity.

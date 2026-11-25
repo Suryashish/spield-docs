@@ -1,18 +1,25 @@
 ---
 title: FAQ
-description: Plain-language answers to the most common questions about Spield — what PT and YT are, where the yield comes from, risks, fees, and more.
+description: Plain-language answers to the most common questions about Spield. SR, PT and YT, series and maturity, USTRY, fees, the SDK, cross-chain, and risk.
 icon: CircleQuestionMark
 ---
 
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Callout } from 'fumadocs-ui/components/callout';
 
-The mechanics in plain language. For definitions, see the [Glossary](/docs/resources/glossary);
-for risk detail, see [Understanding the risks](/docs/resources/security).
+The mechanics in plain language. For definitions, see the [Glossary](/docs/resources/glossary).
+For risk detail, see [Understanding the risks](/docs/resources/security).
 
 ## The basics
 
 <Accordions type="single">
+
+<Accordion title="What is Spield?">
+Spield is the fixed-income layer for Stellar, built to the Pendle V2 architecture. It takes a
+yield-bearing position and splits it into a fixed-rate bond (PT) and a yield token (YT), with a
+market where both trade. It has been live on Stellar mainnet since September 2026.
+→ [What is Spield?](/docs/introduction)
+</Accordion>
 
 <Accordion title="What exactly is a PT and a YT?">
 When you deposit, Spield mints equal amounts of a **Principal Token (PT)** and a **Yield Token
@@ -21,22 +28,86 @@ on all the yield that position generates until maturity. Together they always eq
 of the original position. → [PT and YT explained](/docs/how-it-works/pt-and-yt)
 </Accordion>
 
+<Accordion title="What is SR?">
+**SR (Standardized Return)** is a yield-bearing share token over the yield source, Spield's
+counterpart to Pendle's SY. You deposit USDC and receive SR. The number of SR you hold stays flat,
+and each SR is worth more USDC over time. The PT/YT engine and the market only speak SR, which is what
+lets Spield add other yield sources without changing the contracts above it. The app wraps and
+unwraps SR for you inside trades, and you can also hold it in the SR Wrapper.
+→ [Standardized Return (SR)](/docs/how-it-works/standardized-return)
+</Accordion>
+
 <Accordion title="Where does the yield actually come from?">
-From **Blend**, a native Stellar lending market. Your USDC becomes a Blend supply position
-whose exchange rate genuinely rises on-chain as borrowers pay interest. There's no invented
-index and no bridged asset — the backing grows with the real rate. →
-[The yield source](/docs/how-it-works/yield-source)
+Today from two sources. On mainnet and testnet, **Blend**, a native Stellar lending market: your USDC
+becomes a Blend supply position whose rate rises on-chain as borrowers pay interest. On testnet,
+**Etherfuse USTRY**, tokenized US Treasuries, where the yield is USTRY's NAV rising. There is no
+invented index and no bridged asset. → [The yield source](/docs/how-it-works/yield-source),
+[Treasury series (USTRY)](/docs/how-it-works/treasury-series)
 </Accordion>
 
 <Accordion title="Do I need to understand PT and YT to use Spield?">
-No. The **Fixed-Rate Vault** lets you deposit USDC and lock a guaranteed payout without ever
-touching PT or YT. PT/YT are there for users who want more control. →
-[Fixed-Rate Vault](/docs/features/fixed-rate-vault)
+No. The **Fixed-Rate Vault** lets you deposit USDC and lock a fixed payout without ever touching PT or
+YT. PT and YT are there for users who want more control. → [Fixed-Rate Vault](/docs/features/fixed-rate-vault)
 </Accordion>
 
 <Accordion title="What do I deposit?">
-**USDC** — Circle's USD-backed stablecoin, native on Stellar. You'll also want a small amount
-of **XLM** for tiny network fees. → [Funding your wallet](/docs/getting-started/funding-your-wallet)
+On Blend series, **USDC**, Circle's USD-backed stablecoin, native on Stellar. On USTRY series, **USTRY**
+(or USDC, which the app swaps for USTRY first). You also want a few **XLM** for network fees and
+account reserves. → [Funding your wallet](/docs/getting-started/funding-your-wallet)
+</Accordion>
+
+<Accordion title="Is Spield live on mainnet? Can I deposit right now?">
+Spield is live on mainnet, but its two mainnet series (Series 1 and Series 2) have both **matured**,
+so they are redeem-only. No mainnet series is open for new deposits as of late November 2026. New series
+are announced in the app and published in the SDK's hosted series list. You can try every flow on
+testnet today, and redeem matured mainnet positions at any time.
+→ [Redeem at maturity](/docs/guides/redeem-at-maturity)
+</Accordion>
+
+</Accordions>
+
+## Series and maturity
+
+<Accordions type="single">
+
+<Accordion title="What is a series, and what is maturity?">
+A **series** is one maturity, deployed as its own stack of six contracts (SR, strategy, yield engine,
+market, vault, router) with its own PT asset. **Maturity** is the expiry date, set once when the series
+is created and never changed. There is no roll: a new maturity is a new series. After maturity there are
+no new mints, swaps, or liquidity additions, but PT redemption, vault receipt redemption, YT yield claims,
+and liquidity removal keep working. → [Series and maturities](/docs/how-it-works/series-and-maturities)
+</Accordion>
+
+<Accordion title="Why did a series stop accepting deposits?">
+There are a few reasons, and none of them affect your ability to exit:
+
+- **It matured.** Minting closes at expiry.
+- **It hit its Guarded Launch Cap.** Each series has a ceiling on total SR deposits (for example 50 USDC on mainnet Series 1 and 160 USDC on Series 2). It is measured against the principal deposited, and it only gates new deposits, so lowering it can never trap anyone.
+- **The Fixed-Rate Vault is out of spare capacity.** The vault only promises a payout it holds PT to back, so a vault deposit reads **Not accepting deposits** or **Exceeds vault capacity** until there is room. A smaller amount may still fit.
+- **An admin pause.** A pause stops new deposits and trades, while the core exits stay open.
+- **On USTRY series,** new deposits and splits also close when the NAV is older than the series' maximum age or below its previous high.
+
+If deposits are closed, you can still trade PT and YT paying in SR on a series that is below maturity
+(SR trades skip the deposit cap). See [Trade with SR](/docs/guides/trade-with-sr).
+</Accordion>
+
+<Accordion title="Which PT asset is the real one?">
+PT is a classic Stellar asset with its own issuer **per series**, and different series can use the same
+asset code. Always compare the full **`CODE:ISSUER`**, never the code alone. The mainnet PT assets are:
+
+- Series 1: `SPLDPT:GDNSUOHJIWYXX6HC6ZVDJNLSIBLZMLJYBG7NAN2CRUSXOG4FIDAOH5KN`
+- Series 2: `SPLDPT:GBBRKYFRHSDUQ3YQRIFR42GZ4OKFMVKCZN7JYFPESVNSRU3WEE4JPI7Q`
+
+A throwaway 90-minute demo series also ran on mainnet on 1 September 2026 and has matured. Its asset is
+`SPLDPTD:GBNXYAM46QXDKPWKHJLONJQFJJMYOAXCHOPL7G344OIKPGSTVD4FPP7P`. Each issuer locks itself (all signer
+weights set to 0), so only that series' yield contract can mint its PT. Anything else with a similar name
+is not Spield's PT. Check the [Addresses](/docs/developers/addresses) page, or the app, which shows the
+asset for the series you select.
+</Accordion>
+
+<Accordion title="Can a series be extended?">
+No. The expiry is set once and cannot be changed. If you want continued exposure, move to a newer series
+by redeeming and depositing again.
 </Accordion>
 
 </Accordions>
@@ -46,29 +117,45 @@ of **XLM** for tiny network fees. → [Funding your wallet](/docs/getting-starte
 <Accordions type="single">
 
 <Accordion title="Can I lose money holding PT?">
-PT redeems 1:1 for principal at maturity, so held to maturity it returns your principal plus
-the locked discount as fixed yield. Before maturity its market price moves with rates, like
-any bond — so selling early could be at a gain or a loss. YT carries more risk: it can decay
-to zero if realized yield underperforms the implied APY.
+PT redeems 1:1 for principal at maturity, so held to maturity it returns your principal plus the locked
+discount as fixed yield. Before maturity its market price moves with rates, like any bond, so selling early
+could be at a gain or a loss. YT carries more risk: it can decay to zero if realized yield underperforms the
+implied rate. On a USTRY series PT pays a USTRY amount, so a fall in NAV means fewer dollars.
 </Accordion>
 
 <Accordion title="Is the fixed rate really guaranteed?">
-For a payout already issued (a vault receipt, or PT you've bought), yes — it doesn't change.
-The vault only ever promises a payout it already holds the backing for, and PT redeems 1:1 at
-maturity. The *quoted* rate for **new** deposits can change over time, but never retroactively.
+Once issued, the rate on your position does not change: a vault receipt, or PT you have bought, is locked.
+The *quoted* rate for **new** deposits can move, but never retroactively. The guarantee is only as strong
+as the backing underneath it, so it carries the protocol's risks. If the yield source lost principal, the
+loss would be shared pro rata. See [Understanding the risks](/docs/resources/security).
+</Accordion>
+
+<Accordion title="How is the Fixed-Rate Vault's rate set?">
+The vault's rate is set by the admin and is bounded on-chain by a hard ceiling of 20%. At launch, the
+deployment process checks the rate against Blend's measured supply rate, net of the 5% yield fee and with a
+safety margin. That check happens when the series is launched, not inside the contract. What the contract
+does enforce is the ceiling and that every receipt is backed by PT the vault actually holds.
+→ [Fixed-Rate Vault](/docs/features/fixed-rate-vault)
 </Accordion>
 
 <Accordion title="What are the main risks?">
-The honest short list: **smart-contract risk** (as with any DeFi), **yield-source risk** (Spield
-depends on the underlying lending market staying healthy), **YT risk** (it can decay to zero),
-and **market risk** (PT's price moves before maturity). Full detail:
+The honest short list: **smart-contract risk**, **yield-source risk** (Blend, or for USTRY the issuer and
+the NAV feed), **YT risk** (it can decay to zero), **market risk** (PT's price moves before maturity),
+**liquidity risk**, and **admin risk** (a 2-of-3 multisig controls the contracts). Full detail:
 [Understanding the risks](/docs/resources/security).
 </Accordion>
 
 <Accordion title="Could the protocol become insolvent?">
-By design, no: backing only grows, yield payouts come from that growth (never principal), and
-the solvency invariant is checked on every operation. You can verify it live on the
-[Solvency dashboard](/docs/features/solvency-dashboard).
+The contracts assert solvency after every value-moving call: the engine must hold enough SR to redeem
+every PT at par and pay every credited yield claim. You can read the figures yourself on the
+[Solvency dashboard](/docs/features/solvency-dashboard). The residual risk is outside the contracts:
+if the yield source itself lost value, that loss would flow through.
+</Accordion>
+
+<Accordion title="Has Spield been audited?">
+Spield has not published an independent audit report, and the project describes itself as unaudited. Every
+contract is verifiable on-chain, and the docs list the public addresses. Treat it as early-stage software, keep
+amounts small (launch caps are small on purpose), and only deposit what you can afford to lose.
 </Accordion>
 
 </Accordions>
@@ -78,26 +165,61 @@ the solvency invariant is checked on every operation. You can verify it live on 
 <Accordions type="single">
 
 <Accordion title="Can I exit before maturity?">
-Yes. Sell PT (or YT) on the market at the current price, or — if you hold equal PT + YT —
-recombine them back into USDC any time. The fixed return is what you get if you *hold to
-maturity*; exiting early means taking the current market price.
+Yes. Sell PT (or YT) on the market at the current price, or, if you hold equal PT and YT, **Combine** them
+back into USDC at par on the Deposit page. The fixed return is what you get if you *hold to maturity*.
+Exiting early means taking the current market price.
 </Accordion>
 
 <Accordion title="How do I claim my YT yield?">
-Open your position and click **Claim**. Spield pays the accrued yield in USDC and your YT keeps
-earning to maturity. You can claim as often as you like.
+Open the **Yield** page and click **Claim**. Spield pays the accrued yield in USDC (net of the yield fee) in one
+signature, and your YT keeps earning until maturity. Yield accrued before maturity stays claimable forever.
+</Accordion>
+
+<Accordion title="What happens at maturity, and how do I redeem?">
+PT redeems 1:1 for USDC, vault receipts redeem for their full fixed payout, YT stops accruing (but earned
+yield stays claimable), and you can remove liquidity. Everything stays open after maturity with no deadline.
+→ [Redeem at maturity](/docs/guides/redeem-at-maturity)
 </Accordion>
 
 <Accordion title="Do LPs suffer impermanent loss?">
-The fixed-maturity, time-decay design largely eliminates it: as maturity approaches, PT
-converges to par and YT decays to zero, so an LP who stays to maturity faces near-zero
-impermanent loss while still earning swap fees. → [Liquidity](/docs/features/liquidity)
+The fixed-maturity, time-decay design largely limits it: as maturity approaches, PT converges to par, so an LP
+who stays to maturity faces little impermanent loss while still earning swap fees. The pool pairs PT with SR,
+so the SR half also keeps earning the yield source's rate. Exiting early can still realize some loss.
+→ [Liquidity](/docs/features/liquidity)
 </Accordion>
 
 <Accordion title="What fees does Spield charge?">
-The market charges a small **swap fee** on trades (bounded by an on-chain ceiling), which goes
-to liquidity providers. There are also the usual tiny **Stellar network fees** in XLM. Holding
-PT to maturity or using the vault involves no trading fee.
+Two protocol fees, each with a hard on-chain ceiling:
+
+- **Yield fee: 5%** of the yield that YT holders collect (ceiling 10%).
+- **Swap fees** on PT/SR trades scale with time to maturity. **80% goes to liquidity providers and 20% to the treasury** (the treasury share has a ceiling of 50%).
+
+There are also the usual tiny **Stellar network fees** in XLM, and Circle's fee on cross-chain transfers
+(shown before you confirm). Holding PT to maturity or using the vault involves no trading fee; the vault's
+payout is quoted net of everything. → [Protocol fees](/docs/features/protocol-fees)
+</Accordion>
+
+<Accordion title="What is USTRY, and can I use it on mainnet?">
+**USTRY** is Etherfuse's tokenized US Treasury product on Stellar. Spield runs a USTRY series family
+(deposit USTRY, split into PT and YT, trade in a PT/USTRY pool, finalize at maturity). It is live on
+**testnet today** and planned for mainnet. A USTRY series is priced by a NAV feed (SEP-40), pays in USTRY
+tokens rather than dollars, and does not guarantee dollar principal. Exits and maturity never wait on the
+feed. → [Treasury yield guide](/docs/guides/treasury-yield), [Treasury series](/docs/how-it-works/treasury-series)
+</Accordion>
+
+<Accordion title="Can I bring USDC from other chains?">
+Yes, with **Circle CCTP V2**. The mainnet app supports Ethereum, Base, Arbitrum, OP Mainnet, Polygon,
+Avalanche, and Solana. USDC is burned on the source chain and native USDC is minted to your own Stellar
+wallet. You can also pay directly from another chain on the Vault, SR Wrapper, Liquidity, Deposit, and
+Markets panels, and send exits back out. Journeys are resumable and funds always stop in your own wallet if
+anything is interrupted. → [Bridge USDC](/docs/guides/bridge-usdc)
+</Accordion>
+
+<Accordion title="Is there an SDK?">
+Yes. [`@spield/sdk`](https://www.npmjs.com/package/@spield/sdk) on npm covers mainnet and testnet, Blend
+and USTRY series: quotes, buying and selling PT and YT, redeeming, claiming yield, trustlines, a wallet
+picker, and a typed `error.reason` for every refusal. New series appear through a signed hosted list
+without an SDK release. → [SDK](/docs/developers/sdk)
 </Accordion>
 
 </Accordions>
@@ -107,35 +229,28 @@ PT to maturity or using the vault involves no trading fee.
 <Accordions type="single">
 
 <Accordion title="Is there any bridge or cross-chain risk in the core?">
-No. Spield's core protocol is **Stellar-native only** — both the deposit and settlement asset
-(USDC) live on Stellar, with no EVM bridge or relayer in the value path. The optional
-[bridge feature](/docs/features/cross-chain-bridge) only helps you *get* USDC onto Stellar; it's
-not part of how your position is held.
+No. Spield's core protocol is **Stellar-native only**. Both the deposit and settlement asset (USDC) live on
+Stellar, with no relayer in the value path. Cross-chain USDC through Circle CCTP only helps you get funds
+into or out of your own wallet, and carries Circle CCTP's own risk if you use it.
 </Accordion>
 
 <Accordion title="Who controls the protocol? Can an admin take my funds?">
-No admin can move user funds, mint unbacked tokens, or drain reserves — those paths don't
-exist. Admin powers are limited to bounded actions (pausing *new* inflows, adjusting
-rates/fees within on-chain ceilings, and timelocked upgrades). A pause can never trap your
-funds — exits always stay open. → [Architecture: trust model](/docs/developers/architecture#trust-model-honest-summary)
-</Accordion>
-
-<Accordion title="Has Spield been audited?">
-Treat Spield as an early-stage protocol and check the current status in the
-[Resources](/docs/resources) and the app before committing significant funds. As always in
-DeFi, only deposit what you're comfortable putting at risk.
+The contracts' admin is a **2-of-3 multisig** (`GDJ66WMVVH6MWBL4KORY2HOXWLY4UGFCMP64RC474LUJPQCPQUC4RUFL`). Its
+powers are bounded: pausing new deposits and trades, adjusting caps, rates, and fees within on-chain ceilings,
+and scheduling upgrades behind a timelock of at least 24 hours. There is no function that moves user balances
+or mints unbacked tokens, and exits stay open while paused.
+→ [Architecture: trust model](/docs/developers/architecture#trust-model-honest-summary)
 </Accordion>
 
 <Accordion title="How can I verify the protocol is solvent right now?">
-Open the [Solvency dashboard](/docs/features/solvency-dashboard) in the app, or query the
-solvency figures directly from the chain yourself — see
-[reading state](/docs/developers/reading-state). The numbers are live and permissionless to
-read.
+Open the [Solvency dashboard](/docs/features/solvency-dashboard) in the app, or query the figures directly
+from the chain, as described in [reading state](/docs/developers/reading-state). The numbers are live and
+permissionless to read.
 </Accordion>
 
 </Accordions>
 
 <Callout title="Didn't find your question?">
   Check the [Glossary](/docs/resources/glossary) for terms, the [How It Works](/docs/how-it-works)
-  section for mechanics, or the community links in [Resources](/docs/resources).
+  section for mechanics, or the links in [Resources](/docs/resources).
 </Callout>

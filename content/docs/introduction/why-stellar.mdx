@@ -1,6 +1,6 @@
 ---
 title: Why Stellar?
-description: Why Spield is built on Stellar — real institutional yield, low fees, fast finality, and a native lending market to source yield from.
+description: Why Spield is built on Stellar. Real lending and treasury yield, low fees, fast finality, native USDC, and a bridge-free core.
 icon: Orbit
 ---
 
@@ -14,28 +14,31 @@ performance characteristics that make a fixed-income product practical.
 
 Stellar has become a leading home for **regulated, real-world-asset (RWA) yield** and a
 healthy native lending market. That matters because Spield's whole job is to *restructure*
-yield — so the quality and realness of the underlying yield is the foundation everything
-sits on.
+yield, so the quality and realness of the underlying yield is the foundation everything
+sits on. Today Spield strips two kinds:
 
-Spield sources its yield from **Blend**, Stellar's primary lending market, where USDC
-earns genuine borrower-paid interest that accrues on-chain. There's no synthetic or
-"promised" rate involved — see [The Yield Source](/docs/how-it-works/yield-source).
+- **Blend USDC.** Blend is Stellar's primary lending market. USDC supplied there earns genuine
+  borrower-paid interest that accrues on-chain. There is no synthetic or "promised" rate.
+  See [The yield source](/docs/how-it-works/yield-source).
+- **Etherfuse USTRY.** Tokenized US Treasuries, priced by a NAV feed. This runs on testnet
+  today, with mainnet planned. See [Treasury series (USTRY)](/docs/how-it-works/treasury-series).
 
 ## The right performance profile
 
-Fixed-income products involve lots of small, frequent operations — deposits, claims,
+Fixed-income products involve lots of small, frequent operations: deposits, claims,
 redemptions, trades, liquidity moves. That only works on a chain that is:
 
 | Property | Why it matters for Spield |
 | --- | --- |
 | **Low fees** | Claiming a few cents of yield or rebalancing a small position has to be economical. |
-| **Fast finality** | Trades and redemptions confirm in seconds, so the UX feels instant. |
-| **Native USDC** | Circle's USDC lives on Stellar directly — the asset users deposit *and* the asset PT redeems into, with no wrapping. |
+| **Fast finality** | Trades and redemptions confirm in seconds, so the experience feels instant. |
+| **Native USDC** | Circle's USDC lives on Stellar directly. It is the asset you deposit *and* the asset PT redeems into, with no wrapping. |
 | **Smart contracts (Soroban)** | Stellar's contract platform runs the protocol logic securely and cheaply. |
+| **Classic assets and SACs** | PT is an ordinary Stellar asset, so wallets, explorers, and the Stellar DEX understand it natively. |
 
 ## No bridges in the core
 
-Many cross-chain "yield" products inherit risk from bridges and relayers — the parts that
+Many cross-chain "yield" products inherit risk from bridges and relayers, the parts that
 have historically been the most exploited in crypto. Spield's **core protocol is
 Stellar-native only**:
 
@@ -43,11 +46,13 @@ Stellar-native only**:
 - The asset PT redeems into is the same native USDC.
 - There is no cross-chain message-passing or single-signer relayer anywhere in the value path.
 
-<Callout type="info" title="Bridging is optional, and only at the edge">
-  Spield *does* offer an optional [cross-chain bridge](/docs/features/cross-chain-bridge)
-  so you can bring USDC over from other chains. But that bridge only moves funds **to the
-  doorstep** — once your USDC is on Stellar, everything Spield does is native. The bridge
-  is a convenience for getting in, never part of how the protocol holds or grows your money.
+<Callout type="info" title="Moving USDC in from other chains is optional, and only at the edge">
+  The app can move USDC from other chains to Stellar and back with **Circle CCTP**, so you
+  can start from a wallet on Ethereum, Base, Arbitrum, OP Mainnet, Polygon, Avalanche, or Solana.
+  That only moves funds **to your own Stellar wallet** (or out of it). Once your USDC is on
+  Stellar, everything Spield does is native. Cross-chain is a convenience for getting in and
+  out, never part of how the protocol holds or grows your money. See
+  [Cross-chain bridge](/docs/features/cross-chain-bridge).
 </Callout>
 
 ## In short

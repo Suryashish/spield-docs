@@ -1,103 +1,144 @@
 ---
 title: PT and YT explained
-description: A deep but plain explanation of Principal Tokens and Yield Tokens — what they represent, how they're priced, and why their value always sums to the original position.
+description: What Principal Tokens and Yield Tokens are, how yield settles on every YT transfer, how they are priced, and the 5% yield fee.
 icon: Split
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
-When you deposit USDC, Spield mints two tokens in equal amounts: a **Principal Token (PT)**
-and a **Yield Token (YT)**. This is the heart of the protocol, so let's make it concrete.
+When you split a deposit, Spield mints two tokens in equal amounts: a **Principal Token (PT)**
+and a **Yield Token (YT)**. This is the heart of the protocol, so here it is made concrete.
 
 ## The split
 
-Imagine you deposit **100 USDC**. That USDC is supplied to the yield source and starts
-earning interest. Spield then represents your position as two separate claims:
+Say you deposit **100 USDC**. It is supplied to the yield source and wrapped into
+[SR, the yield-bearing share token](/docs/how-it-works/standardized-return). Spield then
+represents that position as two separate claims:
 
 ```mermaid
 flowchart LR
-  D(["💵 100 USDC<br/>deposited"]) --> P["Position<br/><small>earning yield</small>"]
-  P --> PT["<b>100 PT</b><br/><small>claim on the 100 principal</small>"]
-  P --> YT["<b>100 YT</b><br/><small>claim on all future yield</small>"]
+  D(["100 USDC<br/>deposited"]) --> SR["SR<br/><small>earning yield</small>"]
+  SR --> PT["<b>100 PT</b><br/><small>claim on the 100 principal</small>"]
+  SR --> YT["<b>100 YT</b><br/><small>claim on all yield until maturity</small>"]
 
   classDef src fill:#0a1a18,stroke:#2dd4bf,color:#e7ecea;
   classDef pt fill:#0c1116,stroke:#9ca3af,color:#e7ecea;
   classDef yt fill:#04201b,stroke:#00ffcc,color:#aafff0;
   classDef io fill:#00ffcc22,stroke:#00ffcc,color:#aafff0;
   class D io;
-  class P src;
+  class SR src;
   class PT pt;
   class YT yt;
 ```
 
-- **PT** is your claim on the **principal**. Each PT redeems for exactly **1 USDC at maturity**.
+- **PT** is your claim on the **principal**. Each PT redeems for **1 USDC of value at maturity**.
 - **YT** is your claim on the **yield**. It collects everything the position earns until maturity.
 
 You now hold 100 PT and 100 YT. You can keep both, sell one, or trade them separately.
 
 <Callout title="The invariant">
-  **Value(position) = Value(PT) + Value(YT)** — always. Splitting never changes the total
-  value; it just hands you two pieces you can manage independently.
+  **Value(position) = Value(PT) + Value(YT).** Splitting never changes the total value. It
+  hands you two pieces you can manage independently.
 </Callout>
 
-## PT — the fixed-rate bond
+## PT: the fixed-rate bond
 
-A PT behaves exactly like a **zero-coupon bond**:
+A PT behaves like a **zero-coupon bond**:
 
-- It's worth **1 USDC at maturity** (its "par" value).
-- Before maturity it trades at a **discount** — say 0.97 USDC.
-- That discount is your **fixed return**: buy at 0.97, redeem at 1.00, keep the difference.
+- It is worth **1 USDC at maturity** (its "par" value).
+- Before maturity it trades at a **discount**, for example 0.9926 USDC with 90 days to go.
+- That discount is your **fixed return**. Buy at 0.9926, redeem at 1.00, keep the difference.
 
-As time passes and maturity nears, a PT's market price drifts **up toward par (1.0)**,
-because it's getting closer to being redeemable for a full 1 USDC.
+As maturity nears, a PT's market price drifts **up toward par (1.0)**, because it is getting
+closer to being redeemable.
 
 <Tabs items={['What you earn', 'When you can redeem']}>
 <Tab value="What you earn">
-Your return is fixed the moment you buy. If 1 PT costs 0.97 and matures in 90 days, you earn
-**~3.1% over 90 days** (≈ 12.5% annualized) — no matter what happens to rates afterward.
+Your return is fixed the moment you buy. If 1 PT costs 0.9926 and matures in 90 days, you earn
+about **0.75% over 90 days**, which is about **3% a year**, whatever happens to rates afterward.
+The market's own number for this is the **implied APY**.
 </Tab>
 <Tab value="When you can redeem">
-PT redeems **1:1 for USDC at or after maturity**. Before maturity you can't redeem it for
-par, but you *can* sell it on the market at its current price, or recombine it with YT to
-exit early (see below).
+PT redeems **1:1 at or after maturity**, and at that point you need only the PT (the YT is not
+required). Before maturity you cannot redeem PT alone, but you can sell it on the market at its
+current price, or recombine it with an equal amount of YT (see below).
 </Tab>
 </Tabs>
 
-## YT — the yield token
+### What PT actually is on Stellar
 
-A YT is a claim on **all the yield** the position earns until maturity. Because it's cheap
-relative to the exposure it represents, it's a **leveraged** way to bet on yield:
+PT is a **classic Stellar asset** with code `SPLDPT` (other series use their own codes), also
+reachable as a Stellar Asset Contract. Because it is a classic asset, your wallet needs a
+**trustline** to it, which the app adds for you.
+
+Every series gets its **own fresh issuer account**, and that issuer is **locked** right after
+setup: all its signer weights are set to zero, so no key can ever mint more. Only the series'
+yield contract can mint PT, and only against real deposits. Because tickers repeat across
+series, always compare the full `CODE:ISSUER` pair, never the code alone. The live pairs are
+listed on [Addresses](/docs/developers/addresses).
+
+## YT: the yield token
+
+A YT is a claim on **all the yield** the position earns until maturity. It is cheap relative to
+the exposure it represents, so it is a **leveraged** way to take a view on yield:
 
 - A small amount of USDC buys YT covering the yield of a much larger position.
-- If realized yield **beats** the market's expectation, YT is profitable.
-- If realized yield **underperforms**, YT can decay toward zero by maturity.
+- If realized yield **beats** what the market expected, YT is profitable.
+- If realized yield **falls short**, YT can end up worth little or nothing.
 
-You can **claim** the yield a YT has accrued at any time — it pays out in USDC, and the YT
-keeps earning until maturity.
+You can **claim** the yield a YT has accrued at any time. The claim pays out in USDC (via
+SR), and the YT stays in your wallet and keeps earning until maturity.
 
 <Callout type="warn" title="YT is the higher-risk leg">
-  YT is for users with a view on yield. Its value can fall to zero at maturity if the
-  position earned little. That's the trade-off for its leverage — read
+  YT is for users with a view on yield. Its value falls toward zero as maturity approaches,
+  and it can be worth less than you paid. That is the price of its leverage. Read
   [Understanding the risks](/docs/resources/security).
 </Callout>
 
-## How they relate over time
+### YT is the yield contract itself
 
-Here's the intuition for the whole life of a market, holding yield expectations constant:
+On Stellar, a classic asset has no hooks, so it cannot do anything when it moves. Spield needs
+YT to do something on every move: **settle the interest earned so far**. So YT is not a classic
+asset. **The yield contract is the YT token.** Its address is the YT address, and there is no
+YT trustline to create.
+
+Every time YT changes hands, mints, or burns, a hook runs first and settles **both** sides at
+the current yield index:
 
 ```mermaid
 flowchart LR
-  subgraph T["🕒 Today"]
-    PTa["PT ≈ 0.97"]
-    YTa["YT ≈ 0.03<br/>+ accrued"]
+  T["YT transfer<br/>Alice sends Bob 50 YT"] --> A["Settle Alice<br/><small>her earned yield is credited</small>"]
+  A --> B["Settle Bob<br/><small>his earned yield is credited</small>"]
+  B --> M["Move the 50 YT"]
+```
+
+What this guarantees:
+
+- **Yield follows the token.** Alice cannot send Bob all her YT and still collect the yield
+  going forward. What she earned before the transfer is hers. What accrues afterward belongs to
+  whoever holds the YT.
+- **A new holder never inherits old yield.** Bob earns only from the moment he receives YT.
+- **One balance, no positions.** Ten purchases are still a single balance and a single claim.
+- **YT is freely transferable**, so wallets, over-the-counter trades, other markets and
+  multisigs all work correctly.
+
+## How they relate over time
+
+Holding yield expectations constant, this is the shape of a market's life:
+
+```mermaid
+flowchart LR
+  subgraph T["Today"]
+    PTa["PT is below 1.00<br/><small>at a discount</small>"]
+    YTa["YT has time left to earn"]
   end
-  subgraph M["🏁 At maturity"]
+  subgraph M["At maturity"]
     PTb["PT = 1.00<br/><small>par</small>"]
-    YTb["YT = 0<br/><small>all yield paid</small>"]
+    YTb["YT has nothing left to earn<br/><small>earned yield stays claimable</small>"]
   end
   PTa ==>|rises to par| PTb
-  YTa -->|decays to zero| YTb
+  YTa -->|decays toward zero| YTb
 
   classDef pt fill:#0c1116,stroke:#9ca3af,color:#e7ecea;
   classDef yt fill:#04201b,stroke:#00ffcc,color:#aafff0;
@@ -105,28 +146,37 @@ flowchart LR
   class YTa,YTb yt;
 ```
 
-- **PT climbs to par.** Its price predictably rises to 1.0.
-- **YT decays to zero.** Its remaining-yield claim shrinks as there's less time left, but it
-  pays out the yield it earned along the way.
+- **PT climbs to par.** Its price rises predictably to 1.0.
+- **YT decays.** The claim on *future* yield shrinks as time runs out. The yield it already
+  earned stays claimable **with no deadline**, even after maturity.
 
 This predictable "time decay" is exactly what the [yield market](/docs/features/yield-market)
-is built to price.
+prices.
 
 ## Recombining (exit early)
 
-If you hold **equal amounts of PT and YT**, you can **combine** them back into USDC at any
-time — even before maturity — because together they're just the original position again.
-Spield automatically claims any pending yield first, so nothing is lost. This is your
-"undo": PT + YT → USDC.
+If you hold **equal amounts of PT and YT**, you can **recombine** them back into the
+underlying at any time before maturity, because together they are just the original position
+again. Any pending yield is credited first, so nothing is lost. After maturity you need only
+PT.
+
+## The yield fee
+
+Spield takes a **5% yield fee**, charged on **YT interest** at the moment it is paid out to
+you. It is never charged on principal, on PT, or on wrapping and unwrapping SR. The contract
+caps the fee at 10%, so it can never be raised past that. Details and the full fee picture are
+on [Protocol fees](/docs/features/protocol-fees).
 
 ## Recap
 
 | | PT (Principal Token) | YT (Yield Token) |
 | --- | --- | --- |
-| Represents | Your principal | All future yield |
-| Redeems for | 1 USDC at maturity | Yield, claimable any time |
-| Price over time | Rises toward par (1.0) | Decays toward 0 |
-| Risk | Low — a bond | Higher — leveraged on yield |
+| Represents | Your principal | All yield until maturity |
+| Redeems for | 1 USDC of value at maturity | Yield, claimable any time (5% fee) |
+| What it is | Classic Stellar asset (needs a trustline) | The yield contract itself (no trustline) |
+| Price over time | Rises toward par (1.0) | Decays as time runs out |
+| Risk | Low, like a bond | Higher, leveraged on yield |
 | Best for | Savers wanting certainty | Traders with a yield view |
 
-Next: [where the yield actually comes from](/docs/how-it-works/yield-source).
+Next: [Standardized Return (SR)](/docs/how-it-works/standardized-return), the token PT and YT
+are built from.

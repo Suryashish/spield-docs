@@ -1,43 +1,42 @@
 ---
 title: Funding your wallet
-description: How to get USDC and a little XLM onto Stellar — from an exchange, or bridged from another chain with Spield's built-in cross-chain bridge.
+description: How to get USDC and a little XLM onto Stellar, from an exchange or from another chain with Circle CCTP, plus where to find test funds on testnet.
 icon: Coins
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
-import { Card, Cards } from 'fumadocs-ui/components/card';
 
-To deposit into Spield you need two things in your wallet:
+To use Spield you need two things in your wallet:
 
-- **USDC** — the asset you deposit. This is Circle's official USD-backed stablecoin, native on Stellar.
-- **A little XLM** — Stellar's native asset, used to pay tiny network fees and a small one-time reserve. A fraction of an XLM is enough.
-
-<DevPhaseNote />
+- **USDC**, the asset you deposit. On mainnet this is Circle's official USD-backed stablecoin, native on Stellar.
+- **A little XLM**, Stellar's native asset. It pays tiny network fees and the small reserve each account and trustline holds.
 
 ## USDC asset addresses
 
-If you want to add the USDC asset to your wallet manually or verify you're holding the right
-token, these are the official addresses. Spield uses 7-decimal Stellar USDC on both networks.
+If you want to add the USDC asset to your wallet by hand, or check that you hold the right
+token, these are the addresses. Spield uses 7-decimal Stellar USDC.
 
-| Network | USDC address |
-| --- | --- |
-| **Mainnet** (Circle USDC, SAC) | `CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75` |
-| **Mainnet** (classic asset, for trustlines/sends) | `USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN` |
-| **Testnet** (test USDC, SAC) | `CAQCFVLOBK5GIULPNZRGATJJMIZL5BSP7X5YJVMGCPTUEPFM4AVSRCJU` |
+| Network | Asset | Address |
+| --- | --- | --- |
+| **Mainnet** | Circle USDC, classic asset (for trustlines and sends) | `USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN` |
+| **Mainnet** | Circle USDC, contract (SAC) | `CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75` |
+| **Testnet** | Blend test USDC, classic asset (used by Blend testnet series) | `USDC:GATALTGTWIOT6BUDBCZM3Q4OQ4BO2COLOAZ7IYSKPLC2PMSOPPGF5V56` |
+| **Testnet** | Blend test USDC, contract (SAC) | `CAQCFVLOBK5GIULPNZRGATJJMIZL5BSP7X5YJVMGCPTUEPFM4AVSRCJU` |
 
-<Callout title="Trying it out today?">
-  Since Spield is live on **testnet**, you can experiment with **test USDC** — no real money
-  needed. Switch your wallet to Stellar testnet, get free test USDC + XLM from a Stellar testnet
-  faucet (or via Friendbot for XLM), and use the testnet address above. The full app works
-  exactly as it will on mainnet.
+<Callout type="warn" title="Testnet has two different test USDC assets">
+  **Blend's test USDC** (issuer `GATAL...`) is what the Blend testnet series use. **Circle's test
+  USDC** (issuer `GBBD47...`) is a different asset: it is what the Stellar DEX trades against the
+  USTRY testnet token and what Circle CCTP delivers on testnet. They are not interchangeable.
+  Where the app has to convert between them (for example when you bridge in), it does so for
+  you automatically.
 </Callout>
 
-## Getting USDC onto Stellar
+## Getting USDC onto Stellar (mainnet)
 
 There are two easy paths. Pick whichever fits where your funds are now.
 
-<Tabs items={['From an exchange', 'Bridge from another chain']}>
+<Tabs items={['From an exchange', 'From another chain']}>
 
 <Tab value="From an exchange">
 
@@ -45,60 +44,67 @@ Many exchanges support **withdrawing USDC directly on the Stellar network**.
 
 1. On the exchange, choose to withdraw **USDC**.
 2. Select **Stellar** as the network (sometimes labelled "XLM network" or "Stellar Lumens").
-3. Paste your Stellar wallet address as the destination.
-4. Confirm and wait — Stellar settles in seconds.
+3. Paste your Stellar wallet address as the destination. Your wallet needs a USDC trustline first.
+4. Confirm and wait. Stellar settles in seconds.
 
 You can buy a small amount of **XLM** the same way for fees.
 
 <Callout type="warn" title="Pick the Stellar network">
   When withdrawing, you must choose the **Stellar** network specifically. Sending USDC on
-  the wrong network (e.g. Ethereum) won't arrive in your Stellar wallet.
+  the wrong network (for example Ethereum) will not arrive in your Stellar wallet.
 </Callout>
 
 </Tab>
 
-<Tab value="Bridge from another chain">
+<Tab value="From another chain">
 
-If your USDC is on **Ethereum, BSC, Polygon, Arbitrum, Solana, or Tron**, you can bring it
-over without an exchange using Spield's built-in **cross-chain bridge** (powered by
-Allbridge Core).
+If your USDC is on **Ethereum, Base, Arbitrum, OP Mainnet, Polygon, Avalanche, or Solana**,
+you can bring it to Stellar without an exchange. The app uses **Circle CCTP V2**: your USDC
+is burned on the source chain, Circle attests the burn, and native USDC is minted to your
+Stellar wallet.
 
 1. Open the **Bridge** page in the Spield app.
 2. Choose the **source chain** and connect that chain's wallet.
 3. Enter the amount of USDC, review the quote, and confirm.
-4. Your USDC arrives as **native Stellar USDC**, ready to deposit.
+4. Native Stellar USDC arrives in your wallet, ready to deposit.
 
-See the full walkthrough: [Bridge USDC to Stellar](/docs/guides/bridge-usdc) and the
-[Cross-chain bridge feature](/docs/features/cross-chain-bridge).
+You can also pay **directly from another chain** on the Vault, SR Wrapper, Liquidity, Deposit,
+and Markets panels: pick the chain in the **Pay with** menu and the app runs the bridge and
+the deposit as one resumable journey. See [Bridge USDC](/docs/guides/bridge-usdc) and
+[Cross-chain bridge](/docs/features/cross-chain-bridge).
 
 <Callout type="info">
-  The bridge only moves funds **to** Stellar. Once your USDC is here, everything Spield does
-  is fully native — there's no ongoing bridge dependency on your position.
+  Cross-chain only moves funds into (or out of) your own Stellar wallet. Once your USDC is
+  here, everything Spield does is native. There is no ongoing bridge dependency on your position.
 </Callout>
 
 </Tab>
 
 </Tabs>
 
-## A note on trustlines (it's automatic)
+## Test funds on testnet
 
-On Stellar, before an account can hold a particular asset it establishes a one-time
-**trustline** to it. For USDC this usually happens when you first receive it. For Spield's
-own tokens (PT and YT), **the app sets up the needed trustlines for you** with a single
-**"Enable trustline"** click the first time you deposit — you don't have to do anything manual.
+Testnet is for trying things out with no real money. Switch your wallet to the Stellar test
+network, then:
 
-<Callout title="Want the details?">
-  See the dedicated [Trustlines](/docs/getting-started/trustlines) page for exactly what a
-  trustline is, why PT/YT need one, and how the one-click setup works.
-</Callout>
+| You need | How |
+| --- | --- |
+| **XLM** | Friendbot: `https://friendbot.stellar.org/?addr=YOUR_ADDRESS` gives 10,000 test XLM. |
+| **Blend test USDC**, for Blend series | Add the trustline for `USDC:GATALTGTWIOT6BUDBCZM3Q4OQ4BO2COLOAZ7IYSKPLC2PMSOPPGF5V56`, then use the faucet in Blend's testnet app at `testnet.blend.capital`. |
+| **USTRY**, for USTRY series | Add the `USTRY:GC3CW7EDYRTWQ635VDIGY6S4ZUF5L6TQ7AA4MWS7LEQDBLUSZXV7UPS4` trustline and buy it on the Stellar DEX. For example, 100 XLM bought about 60 USTRY when the SDK docs were written. |
+| **Test USDC from another chain** | The Bridge page accepts test USDC from CCTP testnet chains. For a Blend series the app swaps Circle's test USDC 1:1 into Blend test USDC for you (with at least 99% of the amount guaranteed). |
+
+Testnet pools are small. Keep test amounts to a few units. The full USTRY walkthrough is in
+[Treasury yield (USTRY on testnet)](/docs/guides/treasury-yield).
 
 ## How much should I start with?
 
-There's no minimum beyond covering fees. A sensible first run:
+There is no minimum beyond covering fees. A sensible first run:
 
 | Asset | Suggested starter amount |
 | --- | --- |
-| XLM | ~2–5 XLM (covers fees + reserves comfortably) |
-| USDC | Whatever you're comfortable experimenting with |
+| XLM | A few XLM. An account holds 1 XLM minimum plus 0.5 XLM per trustline, and each transaction costs a fraction of a cent. |
+| USDC | Whatever you are comfortable experimenting with. Series have small launch caps. |
 
-Once funded, you're ready for [your first deposit](/docs/getting-started/your-first-deposit).
+Once funded, set up your [trustlines](/docs/getting-started/trustlines) and make
+[your first deposit](/docs/getting-started/your-first-deposit).

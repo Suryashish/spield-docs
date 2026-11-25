@@ -1,0 +1,163 @@
+---
+title: Treasury yield (USTRY on testnet)
+description: A walkthrough of Spield's tokenized-Treasury series on Etherfuse USTRY, from getting USTRY to depositing, splitting, trading, finalizing, and redeeming. Live on testnet today.
+icon: Landmark
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Spield's second yield source is **Etherfuse USTRY**, a tokenized US Treasury product on Stellar. A
+USTRY series works like a Blend series (deposit, split into PT and YT, trade, redeem), but the asset
+you deposit is **USTRY**, not USDC, and its value comes from a **NAV** that a price feed reports.
+
+<Callout type="warn" title="Testnet only today, and not a dollar guarantee">
+  USTRY series run on **Stellar testnet** for now, with mainnet planned. The mainnet app has no USTRY
+  series yet. Also, a USTRY series pays out in **USTRY tokens**. PT is measured in US dollar
+  *face*, but it is redeemed for a USTRY amount fixed at the series' high-water NAV, so if NAV
+  falls, that USTRY is worth fewer dollars. USD face is **not** a principal guarantee.
+  See [Understanding the risks](/docs/resources/security).
+</Callout>
+
+For the design behind this, see [Treasury series (USTRY)](/docs/how-it-works/treasury-series).
+
+## How a USTRY series differs from a Blend series
+
+| | Blend series | USTRY series |
+| --- | --- | --- |
+| Deposit asset | USDC | USTRY (or USDC, swapped for USTRY on the Stellar DEX first) |
+| Yield | Blend's lending rate, through SR | USTRY's NAV rising |
+| PT, YT | PT is a classic asset (trustline); YT is a contract token | Both are **contract claim tokens**, so no PT trustline |
+| Receipts | SR | **sUSTRY**, an unsplit receipt: one sUSTRY holds one USTRY |
+| Price source | None (read from Blend) | A **SEP-40** NAV feed (a Spield-run feed on testnet, RedStone on mainnet) |
+| Market | PT/SR pool | PT/USTRY pool |
+
+Three rules explain most of what you will see in the app:
+
+- **Only new deposits and splits read the NAV feed.** If the NAV is older than the series' maximum age
+  (13 hours on USTRY Series 2), or below its previous high, new deposits and splits close. Exits, claims,
+  YT transfers, and burns **never call the feed**, so a stale feed cannot trap you.
+- **The high-water NAV never falls.** It can rise by at most a capped amount per year (20% a year on
+  USTRY Series 2), so a bad price cannot shift value from PT to YT faster than that.
+- **NAV is never read from DEX trades.**
+
+## Where to run it
+
+The hosted app at [app.spield.live](https://app.spield.live) runs on mainnet, where there is no USTRY series
+yet. To use USTRY today, use the **testnet** through the [SDK](/docs/developers/sdk), which does
+every step below in code. In a testnet build of the app, the USTRY dashboard appears when you pick
+**USTRY** in the header's **Yield source** menu; the steps below follow those screens. Use the **USTRY Series 2** series (30 days,
+maturing **2026-11-28 21:05 UTC**) or any newer USTRY series listed in the app or with
+`client.listSeries()`. Do not use the older **USTRY Series 1**, which ran on a retired design.
+
+## Step by step
+
+<Steps>
+
+<Step>
+### Get test XLM and trustlines
+
+Switch your wallet to Stellar **testnet** and fund it with Friendbot (see
+[Funding your wallet](/docs/getting-started/funding-your-wallet)). Add the trustline for USTRY
+(`USTRY:GC3CW7EDYRTWQ635VDIGY6S4ZUF5L6TQ7AA4MWS7LEQDBLUSZXV7UPS4`), and for Circle test USDC if you want to
+pay in USDC.
+</Step>
+
+<Step>
+### Get USTRY
+
+Two options:
+
+- **In the app:** open the **SR Wrapper** page for the USTRY series. Under **Pay with** pick USDC and under **Receive in** pick USTRY. The button reads **Buy USTRY with USDC**. It is a plain swap on the Stellar DEX, and no sUSTRY is minted.
+- **On the DEX directly:** swap XLM for USTRY. For example, 100 XLM bought about 60 USTRY when the SDK documentation was written.
+
+Testnet pools are small, so keep amounts to a few units.
+</Step>
+
+<Step>
+### Deposit and mint PT and YT
+
+On the **Deposit** page, choose how you pay and enter an amount:
+
+- **Pay with USTRY:** one signature. The series splits it into equal PT and YT in USD face at the current NAV.
+- **Pay with USDC:** the app first swaps USDC for USTRY on the Stellar DEX, then mints. That adds a signature. The **How your funds move** strip shows each step.
+
+The button reads **Deposit & Mint**. If it is disabled, the page says why: NAV is stale or below its
+previous high, the series is paused or full, or it has matured.
+</Step>
+
+<Step>
+### Or deposit as sUSTRY, and split later
+
+Prefer to hold an unsplit receipt? On **SR Wrapper**, **Wrap** USTRY into **sUSTRY**. A receipt needs no
+price, and you can unwrap it one for one at any time, even if the feed is down. When you want PT and YT,
+use **Split receipts into PT + YT** (one signature, no swap). Splitting needs a fresh NAV, like a deposit.
+</Step>
+
+<Step>
+### Trade PT and YT
+
+If the series has a PT/USTRY pool, the **Markets** page trades PT and YT, paying with **USTRY** (one signature), **USDC** (a DEX swap first, so one more signature), or **sUSTRY** (a receipt withdrawal first, one more signature). Selling works the same way in reverse.
+
+- Buying **PT** locks a fixed rate in NAV growth to maturity.
+- Buying **YT** earns the USTRY freed whenever NAV rises above its previous high. YT can only be bought while NAV is fresh and not in a drawdown. PT trades and YT sales work regardless.
+- **Liquidity** pairs PT with USTRY and earns swap fees, PT's pull to par, and NAV growth on the USTRY half. Withdrawals stay open while paused, after maturity, and during an oracle outage.
+</Step>
+
+<Step>
+### Claim yield
+
+On the **Yield** page you see **Claimable now** in USTRY, your **YT face held**, and the **High-water NAV**.
+Click to claim. Your YT is untouched. Claiming reads no feed, but it may first fold the latest published
+NAV into the series (a sync) so the claim includes it. A recovery below the previous high earns nothing new.
+</Step>
+
+<Step>
+### Maturity: finalize
+
+When the series matures, the series stays open until someone **finalizes** it. This freezes PT's
+and YT's USTRY allocation once. The **Awaiting finalization** card appears on the Deposit and Yield pages
+with a **Finalize series** button, and **anyone** can press it. It runs when a NAV sample from after
+maturity exists, or once the **grace period** (3 days on USTRY Series 2) has passed. After the grace
+period it does not read the feed at all, so finalization cannot be blocked. It may take two signatures:
+the first reads the latest NAV into the series so no yield is dropped, the second finalizes.
+</Step>
+
+<Step>
+### Redeem
+
+After finalization, a **PT holder redeems PT alone** for USTRY at the frozen allocation. You do not need YT.
+Unclaimed YT yield stays claimable with no deadline. Before maturity, equal PT and YT can be combined
+back into USTRY. Unsplit sUSTRY can be withdrawn at any time, with no finalization. You can also
+sell the USTRY for USDC on the way out, which depends on DEX liquidity. More in
+[Redeem at maturity](/docs/guides/redeem-at-maturity).
+</Step>
+
+</Steps>
+
+## The same flow in code
+
+The [SDK](/docs/developers/sdk) wraps this in a few calls (amounts are in the series asset, USTRY):
+
+```ts
+import { SpieldClient } from '@spield/sdk';
+
+const spield = new SpieldClient({ signer });        // testnet by default
+await spield.loadSeries();
+const series = spield.ustrySeries('testnet-ustry-2');
+
+await series.ensureTrustlines();                    // USTRY trustline first
+const info = await series.getInfo();                // implied rate, liquidity, warnings
+await series.buyPt({ amount: '1' });                // lock a fixed rate with 1 USTRY
+// ... after maturity:
+await series.claimYield();
+await series.redeem();                              // runs finalize first if needed
+```
+
+`redeem()` adds the `finalize` step for you when the series has not been finalized yet.
+
+<Callout type="info" title="Why USTRY Series 1 was replaced">
+  The first USTRY test series needed a fresh price for almost every action, so a late price could block
+  exits. Series 2 was redesigned so exits and maturity never wait on the feed. That is why only new
+  deposits and splits depend on a fresh NAV.
+</Callout>

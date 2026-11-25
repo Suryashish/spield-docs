@@ -1,0 +1,122 @@
+---
+title: Trade with SR
+description: Buy and sell PT and YT paying or receiving in USDC or SR, and see how many wallet signatures each route takes.
+icon: Layers
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+The PT/SR market trades PT and YT against **SR**, the yield-bearing share token. You do not have to
+think in SR: the app can take USDC and do the wrapping for you. But if you already hold SR, or want
+to end up holding it, you can trade straight in SR and skip the Blend step entirely.
+
+On the **Markets** page, two menus decide the route:
+
+- **Pay with** (when you buy): **USDC**, **SR**, or **USDC on another chain**.
+- **Receive in** (when you sell): **USDC**, **SR**, or **USDC on another chain**.
+
+Under the form, a **How your funds move** strip shows each hop (USDC, Blend pool, SR, PT/SR market)
+and how many wallet signatures the route needs.
+
+## What SR is, in one minute
+
+SR is a **share** of the yield source. The number you hold stays flat, and each SR is worth more USDC
+over time. The app always shows an SR amount alongside its USDC worth at the current rate. Read
+[Standardized Return (SR)](/docs/how-it-works/standardized-return) for the full picture.
+
+## Signatures per route
+
+Trading against the pool is always done in SR. Going through USDC adds a Blend hop (a supply or
+a withdrawal), and a Blend hop plus a curve trade only fits in one Soroban transaction for PT.
+
+| You do | Route | Signatures |
+| --- | --- | :---: |
+| Buy PT with **USDC** | USDC to SR to PT, through the router | **1** |
+| Buy PT with **SR** | SR straight to the market | **1** |
+| Buy YT with **USDC** | Wrap USDC into SR, then buy YT | **2** (1 if you already hold enough SR) |
+| Buy YT with **SR** | SR straight to the market | **1** |
+| Sell PT for **USDC** | PT to SR to USDC, through the router | **1** |
+| Sell PT for **SR** | Market pays SR, no Blend withdrawal | **1** |
+| Sell YT for **USDC** | Sell YT for SR, then unwrap | **2** |
+| Sell YT for **SR** | Market pays SR, no Blend withdrawal | **1** |
+| Pay with or receive **USDC on another chain** | Circle CCTP, then the Stellar route above | Source chain plus the Stellar signatures |
+
+The **button text** tells you where you are on a two-signature route: **Signature 1 of 2**, then
+**2 of 2**.
+
+<Callout type="info" title="Why paying in SR is lighter">
+  Paying with SR skips the Blend supply, so a buy never touches the series' deposit cap. That
+  matters when a series is near or at its cap: USDC deposits are refused, but an SR holder can
+  still trade.
+</Callout>
+
+## Buy PT or YT
+
+<Steps>
+
+<Step>
+### Open Markets and choose what you want
+
+Under **Asset** pick **PT** (a fixed return) or **YT** (leveraged yield), and under **Direction** pick
+**Buy**.
+</Step>
+
+<Step>
+### Choose how you pay
+
+In **Pay with**, pick **USDC** or **SR**. SR shows your balance. The field reads **You pay (USDC)**, or
+**You spend (USDC max budget)** for YT, where you give a budget and the app works out the size.
+</Step>
+
+<Step>
+### Review the quote
+
+You see what you receive, the **fixed return** for PT or the **leverage** for YT, the route strip, and a
+**Max slippage** choice (0.1%, 0.5%, 1%, 3%, or 5%, with 1% as the default). Paying SR shows its USDC
+worth, too.
+</Step>
+
+<Step>
+### Sign
+
+Approve in your wallet. For a PT purchase you first need the PT trustline (the button reads
+**Add the PT trustline first**). A YT purchase needs none.
+</Step>
+
+</Steps>
+
+## Sell PT or YT
+
+Choose **Sell**, then pick **Receive in**:
+
+- **USDC**: the app sells for SR and unwraps through Blend. PT does it in one signature, YT in two.
+- **SR**: one signature, straight from the market. You keep earning the Blend rate on the SR, and can unwrap it later in the **SR Wrapper**.
+- **USDC on another chain**: the sale and unwrap happen on Stellar, then Circle carries the USDC across and you sign once on the destination chain. See [Bridge USDC](/docs/guides/bridge-usdc).
+
+<Callout type="info" title="Selling YT keeps your earned yield">
+  Selling YT credits the yield you have already earned without paying it out, so it stays claimable on
+  the **Yield** page even after your YT balance reaches zero.
+</Callout>
+
+## Holding SR on purpose: the SR Wrapper
+
+The **SR Wrapper** page (under **Trade**) lets you hold SR itself, a yield-bearing dollar with no
+maturity. **Wrap into SR** takes USDC in one signature. **Unwrap to USDC** takes it back, with no
+maturity gate and even when deposits are paused. If Blend cannot pay everything at once, the button
+reads **Withdraw what is available**, and you can unwrap the rest later.
+
+You never need SR to trade PT or YT. It is a convenience for people who want to hold the share
+directly, skip Blend hops, or provide liquidity.
+
+## Limits to know
+
+- **Matured series have no market.** After maturity the Markets page reads "The market is closed" and points you to **Redeem at par** on the Deposit page. See [Redeem at maturity](/docs/guides/redeem-at-maturity).
+- **Big trades move the price.** The pool curve charges a large fill at the rate it leaves behind. When splitting would clearly help, the app says so and suggests a number of smaller trades.
+- **Thin pools.** If the pool cannot fill your size, the app says so rather than sending a bad trade. Try a smaller amount.
+
+## Related
+
+- [Earn a fixed yield](/docs/guides/earn-fixed-yield) and [Go long on yield](/docs/guides/long-yield) for what to do with PT and YT.
+- [Yield market](/docs/features/yield-market) for how the PT/SR pool prices trades.
+- The [SDK](/docs/developers/sdk) exposes the same routes in code, including `preview()` to see signatures before you sign.

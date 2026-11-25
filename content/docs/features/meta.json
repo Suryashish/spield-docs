@@ -8,6 +8,7 @@
     "yield-market",
     "liquidity",
     "cross-chain-bridge",
+    "protocol-fees",
     "solvency-dashboard"
   ]
 }
