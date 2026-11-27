@@ -10,8 +10,9 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
  *  - frontend `src/lib/series.ts` and `src/lib/config.ts` (the app's registry)
  *  - `@spield/sdk` `src/config.ts` and the signed hosted lists at
  *    https://www.spield.live/sdk/{mainnet,testnet}-series.json
- *  - mainnet launch records for Series 1 and Series 2
- *  - the USTRY Series 2 deployment JSON files (series and market)
+ *  - mainnet launch records for Series 1 and Series 2, and `deploy_mainnet_series3.state`
+ *  - the USTRY deployment JSON files (series and market), testnet Series 2 and mainnet Series 1 and 2
+ *  - `contract/spield/MAINNETCONTRACTADDRESSES.md` (the canonical mainnet record)
  * Add a new series by appending to MAINNET_SERIES or TESTNET_SERIES below.
  */
 
@@ -42,9 +43,63 @@ const TESTNET_USDC = 'CAQCFVLOBK5GIULPNZRGATJJMIZL5BSP7X5YJVMGCPTUEPFM4AVSRCJU';
 /** The Admin of every mainnet contract: a 2-of-3 multisig account. */
 const MAINNET_ADMIN = 'GDJ66WMVVH6MWBL4KORY2HOXWLY4UGFCMP64RC474LUJPQCPQUC4RUFL';
 
+/** Etherfuse's mainnet USTRY and the RedStone SEP-40 feed both mainnet USTRY series price it with. */
+const MAINNET_USTRY_SAC = 'CBLV4ATSIWU67CFSQU2NVRKINQIKUZ2ODSZBUJTJ43VJVRSBTZYOPNUR';
+const MAINNET_USTRY_ASSET = 'USTRY-GCRYUGD5NVARGXT56XEZI5CIFCQETYHAPQQTHO2O3IQZTHDH4LATMYWC';
+const REDSTONE_SEP40 = 'CBMGLKUQZVSAIL5CPDDAWSUY7MAKXISHMOZEVLMBUWBMFGHRJSR4WYRF';
+
 const MAINNET_SERIES: readonly Deployment[] = [
   {
-    name: 'Series 2',
+    name: 'USTRY Series 2',
+    sdkId: 'mainnet-ustry-2',
+    expiry: 1800985911,
+    note: 'Tokenized US Treasuries (Etherfuse USTRY), 60-day term, priced by the RedStone SEP-40 feed. Split cap 300 USTRY, deposit cap 50 USTRY.',
+    rows: [
+      ['USTRY Series (deposit, split, redeem, claim)', 'CABEXGWJKJIGOLZVEUIY5PCDFQJMAHGQHK3E3B37PJDVGCPED6NYQVZK', 'contract'],
+      ['USTRY Market (PT/USTRY AMM)', 'CCZVKHKUHHRTAGD6CF5ZSTXNVE657RNUBYXZ5B76S473RIT454EBFCAN', 'contract'],
+      ['NAV feed (RedStone SEP-40)', REDSTONE_SEP40, 'contract'],
+      ['Receipt token (sUSTRY)', 'CCDZ4EYDLRO7QJ2RX6WXGX6RZYJ3XYITFXWGWQL37FJNFVB6ACOA45VA', 'contract'],
+      ['PT-USTRY (claim token)', 'CCVL3RJFARKHQJ4RJYFTDVKP4DY3UAJ5A5OIVZDAUDFK2V3OSGRTLFSB', 'contract'],
+      ['YT-USTRY (claim token)', 'CCU5B3HFFW2X43DRVTNFCPMYQAONLP2KEG3CJZ7O4RZI7RRR2KHUKQZE', 'contract'],
+      ['USTRY (SAC)', MAINNET_USTRY_SAC, 'contract'],
+      ['USTRY classic asset (Etherfuse)', MAINNET_USTRY_ASSET, 'asset'],
+    ],
+  },
+  {
+    name: 'USTRY Series 1',
+    sdkId: 'mainnet-ustry-1',
+    expiry: 1798393776,
+    note: 'Tokenized US Treasuries (Etherfuse USTRY), 30-day term, priced by the RedStone SEP-40 feed. Split cap 36 USTRY, deposit cap 10 USTRY.',
+    rows: [
+      ['USTRY Series (deposit, split, redeem, claim)', 'CDJRQ3V27HTSNTRJYRUKAPO5HDYLKCQVHBGQYJ5MOSXSZBYE2ZDHUX4D', 'contract'],
+      ['USTRY Market (PT/USTRY AMM)', 'CBJ34RNSDLZHKTSLMLJ3WLG5R3PZ5U353PWAXK7SVILNDO64PQ5CCTML', 'contract'],
+      ['NAV feed (RedStone SEP-40)', REDSTONE_SEP40, 'contract'],
+      ['Receipt token (sUSTRY)', 'CAPA4FAVOO2A4IZMXB7BZGKLPEFVCBNYF4WFIVPNTNVKCHQVPGL7WH6W', 'contract'],
+      ['PT-USTRY (claim token)', 'CCT4HFARRXRRPDF4JJOCJM2Q7MCRJBV4CIDBCNKEQNBNKTA77FV5BKNE', 'contract'],
+      ['YT-USTRY (claim token)', 'CASUKGHYC4AZSUOKUKYNRSRVMUG26SIYYZG5QQTUHHXE2K2X5RMAT6FP', 'contract'],
+      ['USTRY (SAC)', MAINNET_USTRY_SAC, 'contract'],
+      ['USTRY classic asset (Etherfuse)', MAINNET_USTRY_ASSET, 'asset'],
+    ],
+  },
+  {
+    name: 'Blend USDC Series 3',
+    sdkId: 'mainnet-blend-3',
+    expiry: 1798393289,
+    note: 'Blend USDC, 30-day term, deposit cap 50 USDC, Fixed-Rate Vault rate 3.00%.',
+    rows: [
+      ['SR (Standardized Return)', 'CDAYFUITKOEVBHBRFOVEVFARYBNW3DRUS2WVKUD25ATQ4MZKNBFMEUTD', 'contract'],
+      ['Yield (PT/YT engine, also the YT token)', 'CD3KTKCMQ6OZ6H7T66TDUGCFJZJQMPQFB7ESZGX6ULJONXDFOGUXF2ZR', 'contract'],
+      ['SR Market (PT/SR AMM)', 'CCPZ64XUKZ43PE2ZYKZTNU6C22NTOYAXEG5C2X277LOXNUAX4MNJO4HM', 'contract'],
+      ['Fixed-Rate Vault', 'CDIBJVASMQJJG6QE4FZO6GWPKRQPYIXCA2MBTBLW6OS7EC5DXNMWVGED', 'contract'],
+      ['Router', 'CCQKAYTRIKB6FUI5FLVZZ3SD3ZNFNSWUKLGL2YVODJPOSS2KJFG5XGPJ', 'contract'],
+      ['Strategy (Blend adapter)', 'CA5O6ZTY4DN5FSQ3HOZCTHSS35DU3NTVJIGNTGIGQXR5ZZ2ZWTX2IORP', 'contract'],
+      ['PT (SAC)', 'CDYL4VN6ZCBOTAOZV4IV2ZMNADY4RKKRCIIVSLS56SWU4Y5Q6RY6Q23P', 'contract'],
+      ['PT classic asset', 'SPLDPT3-GDGTA5KJEWWLI6DR746WOMMCL7L76F5AAKFYG5YIYQ7VPY5WOB4CIOL2', 'asset'],
+      ['USDC (Circle SAC)', MAINNET_USDC, 'contract'],
+    ],
+  },
+  {
+    name: 'Blend USDC Series 2',
     sdkId: 'mainnet-blend-2',
     expiry: 1793056349,
     note: 'Blend USDC, 15-day term, launch deposit cap 160 USDC, Fixed-Rate Vault rate 3.00%.',
@@ -61,7 +116,7 @@ const MAINNET_SERIES: readonly Deployment[] = [
     ],
   },
   {
-    name: 'Series 1',
+    name: 'Blend USDC Series 1',
     sdkId: 'mainnet-blend-1',
     expiry: 1790809749,
     note: 'Blend USDC, 30-day term, launch deposit cap 50 USDC, Fixed-Rate Vault rate 3.00%.',
@@ -117,7 +172,7 @@ const TESTNET_SERIES: readonly Deployment[] = [
     name: 'USTRY Series 2',
     sdkId: 'testnet-ustry-2',
     expiry: 1795899930,
-    note: 'Tokenized US Treasuries (USTRY). Testnet only. A different contract set: no SR, no Router, no Fixed-Rate Vault.',
+    note: 'Tokenized US Treasuries (sandbox USTRY). A different contract set: no SR, no Router, no Fixed-Rate Vault.',
     rows: [
       ['USTRY Series (deposit, split, redeem, claim)', 'CBIY37UHTXL3QJZFRL2QYWSUTCLQCEIK5JFEG4F342SN5T6LLSUWR4FJ', 'contract'],
       ['USTRY Market (PT/USTRY AMM)', 'CC6LKM5HTP6DNRWXUY33WBD7VM6OHJXD3GIHPQWEWB525X6EWADFXWPA', 'contract'],

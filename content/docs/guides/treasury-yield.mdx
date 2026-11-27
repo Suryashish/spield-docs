@@ -1,6 +1,6 @@
 ---
-title: Treasury yield (USTRY on testnet)
-description: A walkthrough of Spield's tokenized-Treasury series on Etherfuse USTRY, from getting USTRY to depositing, splitting, trading, finalizing, and redeeming. Live on testnet today.
+title: Treasury yield (USTRY)
+description: A walkthrough of Spield's tokenized-Treasury series on Etherfuse USTRY, from getting USTRY to depositing, splitting, trading, finalizing, and redeeming. Live on mainnet and testnet.
 icon: Landmark
 ---
 
@@ -11,9 +11,10 @@ Spield's second yield source is **Etherfuse USTRY**, a tokenized US Treasury pro
 USTRY series works like a Blend series (deposit, split into PT and YT, trade, redeem), but the asset
 you deposit is **USTRY**, not USDC, and its value comes from a **NAV** that a price feed reports.
 
-<Callout type="warn" title="Testnet only today, and not a dollar guarantee">
-  USTRY series run on **Stellar testnet** for now, with mainnet planned. The mainnet app has no USTRY
-  series yet. Also, a USTRY series pays out in **USTRY tokens**. PT is measured in US dollar
+<Callout type="warn" title="Real funds on mainnet, and not a dollar guarantee">
+  USTRY series are live on **Stellar mainnet** since 27 November 2026 (USTRY Series 1, 30 days, and
+  USTRY Series 2, 60 days), with small pools and caps at launch. A USTRY series pays out in **USTRY
+  tokens**. PT is measured in US dollar
   *face*, but it is redeemed for a USTRY amount fixed at the series' high-water NAV, so if NAV
   falls, that USTRY is worth fewer dollars. USD face is **not** a principal guarantee.
   See [Understanding the risks](/docs/resources/security).
@@ -35,32 +36,42 @@ For the design behind this, see [Treasury series (USTRY)](/docs/how-it-works/tre
 Three rules explain most of what you will see in the app:
 
 - **Only new deposits and splits read the NAV feed.** If the NAV is older than the series' maximum age
-  (13 hours on USTRY Series 2), or below its previous high, new deposits and splits close. Exits, claims,
+  (25 hours on the mainnet series, 13 hours on testnet), or below its previous high, new deposits and splits close. Exits, claims,
   YT transfers, and burns **never call the feed**, so a stale feed cannot trap you.
-- **The high-water NAV never falls.** It can rise by at most a capped amount per year (20% a year on
-  USTRY Series 2), so a bad price cannot shift value from PT to YT faster than that.
+- **The high-water NAV never falls.** It can rise by at most a capped amount per year (8% a year on
+  the mainnet series, 20% on testnet), so a bad price cannot shift value from PT to YT faster than that.
 - **NAV is never read from DEX trades.**
 
 ## Where to run it
 
-The hosted app at [app.spield.live](https://app.spield.live) runs on mainnet, where there is no USTRY series
-yet. To use USTRY today, use the **testnet** through the [SDK](/docs/developers/sdk), which does
-every step below in code. In a testnet build of the app, the USTRY dashboard appears when you pick
-**USTRY** in the header's **Yield source** menu; the steps below follow those screens. Use the **USTRY Series 2** series (30 days,
-maturing **2026-11-28 21:05 UTC**) or any newer USTRY series listed in the app or with
-`client.listSeries()`. Do not use the older **USTRY Series 1**, which ran on a retired design.
+The hosted app at [app.spield.live](https://app.spield.live) runs on **mainnet**. Pick **USTRY** in
+the header's family menu, then a series:
+
+| Series | Term | Matures (UTC) | SDK id |
+| --- | --- | --- | --- |
+| **USTRY Series 2** | 60 days | 2027-01-26 17:51 | `mainnet-ustry-2` |
+| **USTRY Series 1** | 30 days | 2026-12-27 17:49 | `mainnet-ustry-1` |
+
+The steps below follow those screens. The [SDK](/docs/developers/sdk) does every step in code. To
+practise without real funds, use **testnet** (a testnet build of the app, or the SDK on testnet),
+where the same contracts run on sandbox USTRY; there, do not use the old testnet **USTRY Series 1**,
+which ran on a retired design.
 
 ## Step by step
 
 <Steps>
 
 <Step>
-### Get test XLM and trustlines
+### Get XLM and trustlines
 
-Switch your wallet to Stellar **testnet** and fund it with Friendbot (see
-[Funding your wallet](/docs/getting-started/funding-your-wallet)). Add the trustline for USTRY
-(`USTRY:GC3CW7EDYRTWQ635VDIGY6S4ZUF5L6TQ7AA4MWS7LEQDBLUSZXV7UPS4`), and for Circle test USDC if you want to
-pay in USDC.
+Fund your wallet with XLM for the base reserve and fees (see
+[Funding your wallet](/docs/getting-started/funding-your-wallet)), then add the trustline for
+USTRY, and for USDC if you want to pay in USDC:
+
+- **Mainnet:** Etherfuse USTRY `USTRY:GCRYUGD5NVARGXT56XEZI5CIFCQETYHAPQQTHO2O3IQZTHDH4LATMYWC`
+  and Circle USDC `USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN`.
+- **Testnet:** fund with Friendbot; sandbox USTRY
+  `USTRY:GC3CW7EDYRTWQ635VDIGY6S4ZUF5L6TQ7AA4MWS7LEQDBLUSZXV7UPS4` and Circle test USDC.
 </Step>
 
 <Step>
@@ -69,9 +80,12 @@ pay in USDC.
 Two options:
 
 - **In the app:** open the **SR Wrapper** page for the USTRY series. Under **Pay with** pick USDC and under **Receive in** pick USTRY. The button reads **Buy USTRY with USDC**. It is a plain swap on the Stellar DEX, and no sUSTRY is minted.
-- **On the DEX directly:** swap XLM for USTRY. For example, 100 XLM bought about 60 USTRY when the SDK documentation was written.
+- **On the DEX directly:** on mainnet, swap Circle USDC for USTRY; the order book trades within a few
+  basis points of NAV. On testnet, swap XLM for sandbox USTRY (100 XLM bought about 60 USTRY when the
+  SDK documentation was written).
 
-Testnet pools are small, so keep amounts to a few units.
+The launch pools are small on both networks: on mainnet USTRY Series 2 takes a single PT buy of
+about $80 and Series 1 about $3. Read the quote before you trade.
 </Step>
 
 <Step>
@@ -118,7 +132,8 @@ NAV into the series (a sync) so the claim includes it. A recovery below the prev
 When the series matures, the series stays open until someone **finalizes** it. This freezes PT's
 and YT's USTRY allocation once. The **Awaiting finalization** card appears on the Deposit and Yield pages
 with a **Finalize series** button, and **anyone** can press it. It runs when a NAV sample from after
-maturity exists, or once the **grace period** (3 days on USTRY Series 2) has passed. After the grace
+maturity exists, or once the **grace period** (7 days on the mainnet series, 3 days on testnet)
+has passed. After the grace
 period it does not read the feed at all, so finalization cannot be blocked. It may take two signatures:
 the first reads the latest NAV into the series so no yield is dropped, the second finalizes.
 </Step>

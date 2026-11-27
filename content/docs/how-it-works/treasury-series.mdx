@@ -1,15 +1,16 @@
 ---
 title: Treasury series (USTRY)
-description: Spield's second series family, built on Etherfuse USTRY tokenized US Treasuries. How the NAV feed works, why exits never wait on an oracle, and the risks. Testnet only today.
+description: Spield's second series family, built on Etherfuse USTRY tokenized US Treasuries. How the NAV feed works, why exits never wait on an oracle, and the risks. Live on mainnet since 27 November 2026.
 icon: Landmark
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-<Callout type="warn" title="Testnet only today">
-  Treasury series run on **Stellar testnet** with sandbox USTRY. Mainnet is planned, but no
-  mainnet USTRY series exists yet. Nothing on this page is available with real funds, and the
-  contracts are unaudited.
+<Callout type="warn" title="Live on mainnet, unaudited">
+  Two Treasury series are live on **Stellar mainnet** with Etherfuse's real USTRY
+  (`USTRY:GCRYUGD5…`), launched on 27 November 2026: **USTRY Series 1** (30 days, matures
+  27 December 2026) and **USTRY Series 2** (60 days, matures 26 January 2027). Their pools are small
+  at launch. Testnet runs the same contracts with sandbox USTRY. The contracts are unaudited.
 </Callout>
 
 Alongside the Blend USDC series, Spield has a second family built on **Etherfuse USTRY**, a
@@ -34,25 +35,26 @@ A worked example. You split 100 USTRY when its NAV (net asset value per token) i
 
 ## Where the price comes from: a SEP-40 NAV feed
 
-The series reads USTRY's NAV from a standard **SEP-40 price feed**. On mainnet the feed is
-planned to be RedStone's. On testnet it is a Spield-run feed with the same interface, so the
-series code is identical on both.
+The series reads USTRY's NAV from a standard **SEP-40 price feed**. On mainnet it is
+**RedStone's** feed (`CBMGLKUQ…WYRF`), so Spield runs no oracle there. On testnet it is a
+Spield-run feed with the same interface, so the series code is identical on both.
 
 The series keeps a **high-water mark** of NAV with these rules:
 
 - **It never falls.** If the feed prints a lower price, the mark stays where it was. PT's token
   allocation is set by the high-water mark, so a dip cannot take tokens away from PT holders.
-- **Its rise is capped.** Each series has an annual growth ceiling (`max_apr_bps`, 20% a year
-  on testnet Series 2). The mark can rise at most that fast, bounded in two ways: step by step
+- **Its rise is capped.** Each series has an annual growth ceiling (`max_apr_bps`: 8% a year on
+  the mainnet series, 20% on testnet Series 2). The mark can rise at most that fast, bounded in two ways: step by step
   (from the last price actually used) and in total (a straight line from the first price).
   A spiked or faulty feed print therefore cannot shift principal to YT faster than the ceiling.
 - **It is never priced from DEX trades.** Only the feed counts.
-- **The app rejects stale prices.** A NAV older than the series' maximum age (13 hours on the
-  testnet series) is not accepted for new deposits.
+- **The app rejects stale prices.** A NAV older than the series' maximum age (25 hours on the
+  mainnet series, which covers RedStone's 12-hour heartbeat; 13 hours on testnet) is not accepted
+  for new deposits.
 
 ## Exits never ask the oracle
 
-This is the biggest change from Series 1 and the core design rule of every v2 treasury series:
+This is the biggest change from testnet Series 1 and the core design rule of every v2 treasury series:
 
 ```mermaid
 flowchart LR
@@ -102,7 +104,8 @@ happen two ways:
   uses the stored high-water mark (the app first folds in the latest prices, which is why it
   can take two signatures).
 - **After the grace period.** If no such sample ever arrives, finalization still works once the
-  grace period has passed (3 days on testnet Series 2), and **does not call the oracle at all**.
+  grace period has passed (7 days on the mainnet series, 3 days on testnet Series 2), and **does
+  not call the oracle at all**.
   No feed behaviour can stop a series from finalizing.
 
 Yield credited before expiry stays claimable with no deadline. After finalization PT redeems
@@ -152,12 +155,12 @@ changes with a timelock.
     (liquidity providers can still exit pro rata).
   - **New deposits depend on the feed.** A stale or missing price pauses new deposits, never exits.
   - **Cash-out depends on DEX liquidity.**
-  - **Unaudited and testnet only.**
+  - **Unaudited.** The mainnet series launched with small caps as a guarded launch.
 </Callout>
 
 ## Try it
 
-Follow the walkthrough in [Treasury yield (testnet)](/docs/guides/treasury-yield). To integrate,
+Follow the walkthrough in [Treasury yield](/docs/guides/treasury-yield). To integrate,
 see the [SDK](/docs/developers/sdk).
 
 Next: [solvency](/docs/how-it-works/solvency).

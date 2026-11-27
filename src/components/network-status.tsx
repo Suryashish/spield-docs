@@ -26,13 +26,14 @@ export const USDC_ADDRESSES = {
 export function DevPhaseNote() {
   return (
     <Callout type="info" title="Where Spield is today">
-      Spield v2 has been <strong>live on Stellar mainnet since September 2026</strong>. Each series
-      has a fixed maturity, and both mainnet series so far (Series 1 and Series 2) have{' '}
-      <strong>matured</strong>, so they are <strong>redeem-only</strong>: you can redeem PT, claim
-      yield and redeem vault receipts, but not open new positions. New mainnet series are announced
-      in the app. <strong>Testnet</strong> has live series you can use with free test funds, and the
-      tokenized US Treasury (USTRY) series is <strong>testnet only</strong> for now. USDC addresses
-      for both networks are listed on the{' '}
+      Spield v2 has been <strong>live on Stellar mainnet since September 2026</strong>. Three mainnet
+      series are <strong>open</strong>, launched on 27 November 2026: <strong>Blend USDC Series
+      3</strong> (30 days, matures 27 Dec 2026), <strong>USTRY Series 1</strong> (30 days, 27 Dec
+      2026) and <strong>USTRY Series 2</strong> (60 days, 26 Jan 2027). Their pools are small at
+      launch and Blend Series 3 caps deposits at 50 USDC, so check a quote before a large trade. The
+      earlier Blend Series 1 and 2 have matured and are <strong>redeem-only</strong>.{' '}
+      <strong>Testnet</strong> also has live series you can use with free test funds. Addresses for
+      both networks are on the{' '}
       <Link href="/docs/developers/addresses">Contract addresses</Link> page.
     </Callout>
   );

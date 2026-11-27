@@ -18,7 +18,7 @@ import { SpieldClient, mainnet } from '@spield/sdk';
 
 const spield = new SpieldClient({ network: mainnet() });       // read-only: no signer needed
 await spield.loadSeries();
-const series = spield.series('mainnet-blend-2');
+const series = spield.series('mainnet-blend-3');
 
 const info = await series.getInfo();
 info.impliedApyPct;      // fixed APY a PT buyer locks in now (null if no liquidity or matured)
@@ -114,10 +114,10 @@ async function read<T = unknown>(contractId: string, method: string, args: xdr.S
   return scValToNative(sim.result.retval) as T;
 }
 
-// Mainnet Series 2 (addresses on the Contract addresses page)
-const YIELD = 'CAALMLLE4COVQE33RTZOKKFJ3FYEAOONOAGKOUST26P23FE4HX5Q7XZB';
-const SR = 'CDTAPBUE2JWXT4F3PTAFQRYTLC6IF4K736ISGIFNLJQBC7AWAHPU6HWM';
-const MARKET = 'CC7UQOKGYQLYZY4RALIAPBA4IH2TOMEJENQ6OWWIOSTTUDRZ5VYUERIW';
+// Mainnet Blend Series 3 (addresses on the Contract addresses page)
+const YIELD = 'CD3KTKCMQ6OZ6H7T66TDUGCFJZJQMPQFB7ESZGX6ULJONXDFOGUXF2ZR';
+const SR = 'CDAYFUITKOEVBHBRFOVEVFARYBNW3DRUS2WVKUD25ATQ4MZKNBFMEUTD';
+const MARKET = 'CCPZ64XUKZ43PE2ZYKZTNU6C22NTOYAXEG5C2X277LOXNUAX4MNJO4HM';
 
 const expiry = await read<bigint>(YIELD, 'expiry');                        // unix seconds
 const rate = await read<bigint>(SR, 'exchange_rate');                      // 12-decimal

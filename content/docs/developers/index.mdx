@@ -56,7 +56,7 @@ A new maturity is a new series, so there is no "the" contract address. You choos
 | Smart contracts | Soroban (Rust), on Stellar |
 | Per-series contracts | SR, Yield (PT/YT engine and the YT token), SR Market, Fixed-Rate Vault, Router, Strategy |
 | Tokens | PT is a classic Stellar asset wrapped as a SAC. SR and YT are contract tokens. |
-| Yield sources | Blend USDC lending (mainnet and testnet). Tokenized US Treasuries, USTRY (testnet only today). |
+| Yield sources | Blend USDC lending (mainnet and testnet). Tokenized US Treasuries, USTRY (mainnet since 27 Nov 2026, and testnet). |
 | Reads | Soroban RPC `simulateTransaction` (free, no signing) |
 | Writes | Build, simulate, sign (wallet), submit, poll |
 | Client | `@spield/sdk` (recommended), or `@stellar/stellar-sdk` directly |
@@ -85,7 +85,8 @@ flowchart LR
 - **Compare `CODE:ISSUER`.** PT assets share a code across series, so always compare the issuer too.
 
 <Callout type="info" title="Where Spield is live">
-  Spield v2 has been live on mainnet since September 2026. Both mainnet series so far have matured
-  and are redeem-only. Testnet has live series, and USTRY is testnet only. See
+  Spield v2 has been live on mainnet since September 2026. Three mainnet series are live:
+  `mainnet-blend-3`, `mainnet-ustry-1` and `mainnet-ustry-2` (launched 27 November 2026). Blend
+  Series 1 and 2 have matured and are redeem-only. Testnet has live series too. See
   [Contract addresses](/docs/developers/addresses) for every series.
 </Callout>

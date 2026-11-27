@@ -35,12 +35,13 @@ so `1050000000000` means `1.05` USDC per SR).
 
 PT is the fixed-income leg: one PT redeems for one unit of USDC at maturity.
 
-- **A classic Stellar asset** with code `SPLDPT` (or a series-specific code such as `SPLDPT9` on testnet), wrapped as a Stellar Asset Contract. A wallet needs a **trustline** to hold it. `@spield/sdk` adds one automatically when needed.
+- **A classic Stellar asset** with code `SPLDPT` or a series-specific code (`SPLDPT3` on mainnet Series 3, `SPLDPT9` on testnet), wrapped as a Stellar Asset Contract. A wallet needs a **trustline** to hold it. `@spield/sdk` adds one automatically when needed.
 - **A fresh issuer account per series.** That issuer is locked after setup: all signer weights are zero, so no key can ever mint PT. The SAC's admin is the series' Yield contract, so only the engine can mint or burn PT.
-- **Not unique by code.** Both mainnet series use `SPLDPT`, under different issuers. Always compare the full `CODE:ISSUER`.
+- **Not unique by code.** Mainnet Series 1 and 2 both use `SPLDPT`, under different issuers. Always compare the full `CODE:ISSUER`.
 
 | Series | PT classic asset |
 | --- | --- |
+| Mainnet Series 3 (live) | `SPLDPT3:GDGTA5KJEWWLI6DR746WOMMCL7L76F5AAKFYG5YIYQ7VPY5WOB4CIOL2` |
 | Mainnet Series 2 | `SPLDPT:GBBRKYFRHSDUQ3YQRIFR42GZ4OKFMVKCZN7JYFPESVNSRU3WEE4JPI7Q` |
 | Mainnet Series 1 | `SPLDPT:GDNSUOHJIWYXX6HC6ZVDJNLSIBLZMLJYBG7NAN2CRUSXOG4FIDAOH5KN` |
 
@@ -75,11 +76,11 @@ accepts. Circle's testnet USDC is a different asset and will not work with them.
 ## USTRY series tokens
 
 A USTRY series uses USTRY (Etherfuse's tokenized US Treasuries) as its asset and has three claim
-tokens. USTRY series are **testnet only** today.
+tokens. USTRY series are live on mainnet (since 27 November 2026) and testnet.
 
 | Token | What it is | Trustline needed |
 | --- | --- | --- |
-| **USTRY** | A classic asset with a SAC. On testnet it is a sandbox asset under a test issuer. | Yes (classic) |
+| **USTRY** | A classic asset with a SAC. On mainnet it is Etherfuse's `USTRY:GCRYUGD5NVARGXT56XEZI5CIFCQETYHAPQQTHO2O3IQZTHDH4LATMYWC` (SAC `CBLV4ATSIWU67CFSQU2NVRKINQIKUZ2ODSZBUJTJ43VJVRSBTZYOPNUR`). On testnet it is a sandbox asset under a test issuer. | Yes (classic) |
 | **sUSTRY** (receipt) | An unsplit deposit receipt. A SEP-41 contract token. | No |
 | **PT-USTRY** | The principal claim, in USD face. A SEP-41 contract token. | No |
 | **YT-USTRY** | The yield claim, in USD face. A SEP-41 contract token. | No |

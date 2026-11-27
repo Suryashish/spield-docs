@@ -89,8 +89,19 @@ integrators can pick them up without upgrading the SDK (see the [SDK](/docs/deve
 <Tabs items={['Mainnet', 'Testnet']}>
 <Tab value="Mainnet">
 
-Spield has launched two Blend series on Stellar mainnet. Both have **matured** and are
-**redeem-only**. No mainnet series is open for new deposits right now.
+Three mainnet series are **live**, launched on 27 November 2026:
+
+| | Blend USDC Series 3 | USTRY Series 1 | USTRY Series 2 |
+| --- | --- | --- | --- |
+| Asset | USDC on Blend | Etherfuse USTRY | Etherfuse USTRY |
+| Length | 30 days | 30 days | 60 days |
+| Matures | 2026-12-27 17:41 UTC | 2026-12-27 17:49 UTC | 2027-01-26 17:51 UTC |
+| Opening rate | 3.00% (vault 3.00%) | 3.50% | 3.50% |
+| Cap | 50 USDC | 36 USTRY split, 10 USTRY deposit | 300 USTRY split, 50 USTRY deposit |
+
+Their pools are small at launch, so read the quote before a large trade.
+
+Two earlier Blend series have **matured** and are **redeem-only**:
 
 | | Series 1 | Series 2 |
 | --- | --- | --- |
@@ -100,8 +111,8 @@ Spield has launched two Blend series on Stellar mainnet. Both have **matured** a
 | Vault fixed rate | 3.00% | 3.00% |
 | Deposit cap at launch | 50 USDC | 160 USDC |
 
-Series 2 was a separate deployment from Series 1, with its own contracts and its own PT. All
-mainnet addresses are on [Addresses](/docs/developers/addresses).
+Each series is a separate deployment, with its own contracts and its own PT. All mainnet
+addresses are on [Addresses](/docs/developers/addresses).
 
 </Tab>
 <Tab value="Testnet">

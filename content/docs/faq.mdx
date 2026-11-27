@@ -57,10 +57,11 @@ account reserves. → [Funding your wallet](/docs/getting-started/funding-your-w
 </Accordion>
 
 <Accordion title="Is Spield live on mainnet? Can I deposit right now?">
-Spield is live on mainnet, but its two mainnet series (Series 1 and Series 2) have both **matured**,
-so they are redeem-only. No mainnet series is open for new deposits as of late November 2026. New series
-are announced in the app and published in the SDK's hosted series list. You can try every flow on
-testnet today, and redeem matured mainnet positions at any time.
+Yes. Three mainnet series are open, launched on 27 November 2026: **Blend USDC Series 3** (30 days,
+matures 27 December 2026), **USTRY Series 1** (30 days, matures 27 December 2026) and **USTRY Series
+2** (60 days, matures 26 January 2027). Their pools are small at launch and Blend Series 3 caps
+deposits at 50 USDC, so check the quote before a large trade. The earlier Blend Series 1 and 2 have
+**matured** and are redeem-only; you can redeem those positions at any time.
 → [Redeem at maturity](/docs/guides/redeem-at-maturity)
 </Accordion>
 
@@ -82,7 +83,7 @@ and liquidity removal keep working. → [Series and maturities](/docs/how-it-wor
 There are a few reasons, and none of them affect your ability to exit:
 
 - **It matured.** Minting closes at expiry.
-- **It hit its Guarded Launch Cap.** Each series has a ceiling on total SR deposits (for example 50 USDC on mainnet Series 1 and 160 USDC on Series 2). It is measured against the principal deposited, and it only gates new deposits, so lowering it can never trap anyone.
+- **It hit its Guarded Launch Cap.** Each series has a ceiling on total SR deposits (for example 50 USDC on mainnet Blend Series 1 and 3, and 160 USDC on Series 2). It is measured against the principal deposited, and it only gates new deposits, so lowering it can never trap anyone.
 - **The Fixed-Rate Vault is out of spare capacity.** The vault only promises a payout it holds PT to back, so a vault deposit reads **Not accepting deposits** or **Exceeds vault capacity** until there is room. A smaller amount may still fit.
 - **An admin pause.** A pause stops new deposits and trades, while the core exits stay open.
 - **On USTRY series,** new deposits and splits also close when the NAV is older than the series' maximum age or below its previous high.

@@ -12,7 +12,7 @@ adds missing trustlines, simulates every write, asks a wallet to sign, and waits
 
 This page is the guide. The package's README and USAGE files on npm carry the full API tables.
 
-- Version `0.6.1`, Stellar **mainnet** and **testnet**
+- Version `0.6.2` in the repository (`0.6.1` on npm also serves the new mainnet series through the hosted list), Stellar **mainnet** and **testnet**
 - Node 22+ and modern browsers
 - ESM, CJS and type declarations
 - Entry points: `@spield/sdk`, `@spield/sdk/wallets`, `@spield/sdk/advanced`
@@ -59,7 +59,7 @@ spield.listSeries({ status: 'live' });
 spield.listSeries({ source: 'ustry', status: 'live' });
 // [{ id, name, source, asset, expiry, maturityDate, status, daysToMaturity }, ...]
 
-const series = spield.series('mainnet-blend-2');    // always pass an id in production code
+const series = spield.series('mainnet-blend-3');    // always pass an id in production code
 const blend = spield.blendSeries('testnet-blend-3'); // typed handle: BlendSeries
 const ustry = spield.ustrySeries();                  // newest live USTRY series
 ```
@@ -72,10 +72,13 @@ Series built in today:
 
 | Network | id | Asset | Matures (UTC) |
 | --- | --- | --- | --- |
+| Mainnet | `mainnet-ustry-2` | USTRY | 2027-01-26 17:51 (live, 60 days) |
+| Mainnet | `mainnet-ustry-1` | USTRY | 2026-12-27 17:49 (live, 30 days) |
+| Mainnet | `mainnet-blend-3` | USDC | 2026-12-27 17:41 (live, 30 days) |
 | Mainnet | `mainnet-blend-2` | USDC | 2026-10-26 23:12 (matured, exits only) |
 | Mainnet | `mainnet-blend-1` | USDC | 2026-09-30 23:09 (matured, exits only) |
 | Testnet | `testnet-blend-3` | USDC | 2026-12-17 |
-| Testnet | `testnet-ustry-2` | USTRY | 2026-11-28 |
+| Testnet | `testnet-ustry-2` | USTRY | 2026-11-28 21:05 |
 | Testnet | `testnet-blend-2` | USDC | 2026-11-22 (matured) |
 | Testnet | `testnet-blend-1` | USDC | 2026-09-29 (matured) |
 
@@ -361,10 +364,12 @@ than 7 decimals. Rates, prices and APYs come back as plain numbers (`impliedApyP
 
 ## Mainnet notes
 
-- **Both mainnet series have matured**, so today the SDK serves exits on mainnet: `redeem`, `claimYield`, `fixedRate.redeem`, `redeemMatured` and `getPortfolio`. Trading works on a new series as soon as the hosted list adds one.
+- **Three mainnet series are live** (launched 27 November 2026): `mainnet-blend-3`, `mainnet-ustry-1` and `mainnet-ustry-2` take the whole API, trading included. SDK 0.6.1 picks them up from the signed hosted list through `loadSeries()`; 0.6.2 ships them built in. Their pools are small at launch, so `quoteBuyPt` and `preview` before you size a trade, and Blend Series 3 caps deposits at 50 USDC.
+- **Matured Blend Series 1 and 2** serve exits: `redeem`, `claimYield`, `fixedRate.redeem`, `redeemMatured` and `getPortfolio`.
+- **Mainnet USTRY** is Etherfuse's `USTRY:GCRYUGD5NVARGXT56XEZI5CIFCQETYHAPQQTHO2O3IQZTHDH4LATMYWC`, priced by RedStone's SEP-40 feed. Buy it on the Stellar DEX with Circle USDC.
 - **Fees follow the network.** Writes offer the 90th percentile of recent inclusion fees, capped at 0.1 XLM (`inclusionFee: 'auto'`, `maxInclusionFee`). Pass `inclusionFee: 2000` to fix it.
 - **No faucets.** An account needs XLM for the base reserve and fees, plus 0.5 XLM per trustline.
-- **Both mainnet PTs use the code `SPLDPT`** under different issuers. Compare `code:issuer`, never the code alone.
+- **Blend PT codes repeat.** Series 1 and 2 both use `SPLDPT` under different issuers; Series 3 uses `SPLDPT3`. Compare `code:issuer`, never the code alone.
 - **Testnet funds.** XLM from Friendbot (`https://friendbot.stellar.org/?addr=G...`). USDC for Blend series is Blend's test USDC (`USDC:GATALTGTWIOT6BUDBCZM3Q4OQ4BO2COLOAZ7IYSKPLC2PMSOPPGF5V56`), from the faucet in Blend's testnet app. Circle's testnet USDC does not work with them.
 
 Next: the [Contracts reference](/docs/developers/contracts) for the calls underneath, and
